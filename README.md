@@ -19,16 +19,19 @@ manual.
 **Sequencing**
 - Up to 16 drum tracks, each with its own 8 banks
 - Step Edit: a Pad View with a step sequencer, and a Track View with one row for each track
-- Record pad mutes and track mutes into a sequence
+- Record pad mutes and track mutes into a sequence. Each sequence keeps its
+  own track mutes, as on the MPC Live
+- Note Repeat, Cut and Paste in Step Edit
 - Automate: fade the volume, low-pass or high-pass filter in or out
   (Linear, Log or S-Curve), erase all automation at once
 - Select, name, explode and delete tracks and sequences
+- Move a track: hold **PAD BANK** and push **-** or **+**
 
 **Mixing and export**
 - Mixer with inserts on pads, tracks, 8 submixes and the master (**PAD FX**)
 - A 3-band kill EQ for each pad, with a live spectrum
 - Export the mixdown and stems
-- Resample one pad
+- Resample one pad, with or without its Pad FX
 
 **Sampling and chopping**
 - Chop Mode with 128 slices, Link Slices and Extract
@@ -36,8 +39,8 @@ manual.
   You do not lose your chops by accident.
 - Sample Tail
 - To Seq and Looper in Sample Record
-- Preview samples with their own preview volume, and make new folders in
-  Sample Select
+- Preview samples with their own preview volume, also next to the sounds of
+  your kit, and make new folders in Sample Select
 
 **Playing**
 - 16 Levels with Scale, Chord and Arp
@@ -55,7 +58,8 @@ This list shows only the main features. SampQOL OS has many more: see
 
 - **SHIFT** + **SAMPLE** opens the Pad View. Stock: Input Config.
 - **PAD FX** opens the Mixer. Stock: Pad FX.
-- Pad FX: **SHIFT** + **PAD FX** (Flex Beat), then **B2**.
+- Pad FX: **SHIFT** + **PAD FX** (Flex Beat), then **B2**. Or set
+  **Settings > Shortcuts > Shift+PAD FX** to Pad FX.
 - Select a track: hold **PAD BANK** and turn the encoder.
 - Or select a track with **SHIFT** + **PAD BANK** + pad 1-16.
 - **Settings > Shortcuts** gives back the stock screens.
@@ -79,6 +83,10 @@ Download SampQOL OS only from [Releases](../../releases) or from
    microSD card.
 3. Set the MPC off. Put the card in the MPC. Set the MPC on.
 4. SampQOL OS starts by itself. You do not push a button.
+
+Update from an earlier version: replace the folder `autorun` on the card with
+the new one. Your settings stay: `mpcqol.conf` is on the top level of the
+card, not in the folder `autorun`.
 
 Go back to stock: set the MPC on without the card. To use the card on stock,
 rename the folder `autorun` (for example to `autorun-off`), or move it into a

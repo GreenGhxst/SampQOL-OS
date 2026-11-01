@@ -16,6 +16,85 @@ SampQOL OS (c) 2026 Snare Bes. All rights reserved. See LICENSE.txt.
 Akai Professional, MPC and MPC Sample are trademarks of inMusic Brands, Inc.
 
 
+Version 0.1.5 (1 November 2026)
+-------------------------------
+
+HIGHLIGHTS
+
+- Track mutes per sequence, as on the MPC Live.
+- Hold PAD BANK and push - or +: the current track moves up or down.
+- Note Repeat in Step Edit.
+- Step Edit: cut notes and paste them on another place.
+- Sample Select: pads that have a sample can play their own sound next to
+  the preview (Own Sample).
+- Resample Pad can also print the Pad FX (On / Off).
+
+SEQUENCES AND TRACKS
+
+- Track mutes per sequence, as on the MPC Live: each sequence keeps its own
+  track mutes. A song that you export to a sequence keeps the track mutes
+  of each part.
+- Half Seq and Double Seq (SHIFT + PAD 2 / 3) change all drum tracks of the
+  sequence.
+- Load Kit: when another track has the name of the kit, the track gets its
+  own name (for example "Drum 001-2"). Each track keeps its notes when you
+  save.
+- Load Project: when two tracks have the same name, the second track gets
+  its own name (for example "Drum 001-2"). New notes on both tracks stay
+  when you save.
+- Hold PAD BANK and push - or +: the current track moves one place up or
+  down. It changes places with the track next to it. A popup shows both
+  tracks, for example "Swap Tracks: T01 Drums <> T02 Sample". One UNDO
+  moves it back. This works on all screens.
+
+STEP EDIT
+
+- Note Repeat works in Step Edit: in the Pad View (also with Steps on) and
+  in the Track View.
+- Step Edit: cut notes and paste them on another place. Pad View: Cut
+  (SHIFT + B1). Track View: Copy, then ERASE.
+- Track View: Copy and Duplicate take up to 8192 notes. With more notes, the
+  MPC shows "Too many notes" and copies nothing.
+- Step Edit keeps the cursor, the selection and the copied notes when you
+  open a stock screen (for example Resample or the FADER menu) and go back.
+
+MIXER AND EFFECTS
+
+- Ch. Mixer: Mute on a track strip and Track Mute are one mute. The strip
+  shows Mute also when the sequence plays a recorded track mute.
+- Pad FX: Fixed effects stay on when you leave the Pad FX screen, as Latch.
+- SHIFT + PAD FX can open the stock Pad FX screen at once (Settings >
+  Shortcuts). The default is Flex Beat, as stock.
+
+KNOBS
+
+- Sample Tail and 16 LEVELS Scale: the encoder changes the value of the last
+  knob that you turned, as on the EQ page.
+
+SAMPLE RECORD AND RESAMPLE
+
+- Resample Pad: also prints the Pad FX that are on (Fixed or Latch), with
+  its own On / Off choice. SHIFT + K1 sets the tail (0 to 10 seconds) when
+  an effect is in the new sample.
+
+LOADING AND SAVING
+
+- Sample Select: a pad press selects the pad and previews the file at
+  once. SHIFT + K2 "Own Sample": pads with a sample play their own sound, so
+  you can compare files with your kit. B3 is the stock auto-preview.
+- Sample Select: New Folder also works in an empty folder.
+- Browsers: the FADER scrolls the list, as a scrollbar.
+- The folder pages (Home Folder, Save Sample, Save Project, Export) go up
+  to the root of the SD card, as Sample Select.
+
+KNOWN ISSUES
+
+- Battery Monitor: the charge is an estimate from a voltage. It can stay at
+  one value (for example 45%) and not follow the battery. The stock battery
+  light shows the correct state.
+- A stock MPC Sample does not play the track mutes in a sequence that you
+  made with Song Export. All tracks sound there.
+
 Version 0.1.4.9 (31 October 2026)
 ---------------------------------
 
@@ -181,18 +260,20 @@ MIXER AND EFFECTS
 
 - PAD FX opens the Mixer, from every mode.
 - Mixer: Pad, Track, Submix (1-8) and Master, with 4 inserts each.
-- Ch. Mixer and Pad Mixer: 8 strips with meters, Mute and Solo.
+- Ch. Mixer and Pad Mixer: 8 strips per page with meters, Mute and Solo.
+  Turn the encoder for more strips.
 - Ch. Mixer and Pad Mixer: K2 = pan. The FADER and the encoder set the
   volume of the selected strip.
 - Ch. Mixer and Pad Mixer: SHIFT + B1 opens the inserts of the selected strip.
 - FADER menu: Track Volume (stock: Kit Volume) sets the volume of the
   current track, as K1 on the Ch. Mixer. REC + PLAY records it.
 - Rename a pad, track or submix, and give it a colour.
-- Remove or hide the fixed master effects.
+- Remove or hide the fixed master effects. A hidden effect keeps working
+  and frees its slot. On another MPC it does not play.
 - Undo works in the Mixer. REC + PLAY records on/off and volume.
 - Knob FX is on the master: all pads play through it.
 - Color Comp. on a track or submix.
-- Pad FX: Fixed holds the effect after a tap.
+- Pad FX: Fixed holds the effect after a tap. The FADER sets the depth.
 - FX Select List: show only the effects that you use.
 - Effect page: LP, HP and BP Filter show a filter curve with the cutoff and
   a live spectrum of the sound.
@@ -211,7 +292,8 @@ UNDO AND REDO
 ERASING
 
 - ERASE AUTOMATION: erase all automation of a pad at once.
-- ERASE + FADER (Track Volume): erase the recorded volume of the current track.
+- ERASE + FADER (Track Volume): erase the volume automation of the current
+  track in this sequence.
 
 LOADING AND SAVING
 
