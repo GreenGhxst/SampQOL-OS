@@ -5,7 +5,8 @@ SampQOL OS is a mod for the MPC Sample firmware 1.3.0. It starts from the
 SD card and does not flash the device. Without the SD card, the MPC starts
 as stock 1.3.0.
 
-These notes show all that SampQOL OS does differently from stock 1.3.0.
+The notes of version 0.1.4.7 show all that SampQOL OS does differently
+from stock 1.3.0. Each later version shows what changed.
 See the MANUAL for how to use each function.
 
 A SampQOL project opens on a stock MPC Sample, but the mod functions (more
@@ -24,7 +25,7 @@ HIGHLIGHTS
 - Track mutes per sequence, as on the MPC Live/One/X etc.
 - Hold PAD BANK and push - or +: the current track moves up or down.
 - Note Repeat in Step Edit.
-- Step Edit: cut notes and paste them on another place.
+- Step Edit: cut notes and paste them in another place.
 - Sample Select: pads that have a sample can play their own sound next to
   the preview (Own Sample).
 - Resample Pad can also print the Pad FX (On / Off).
@@ -34,29 +35,15 @@ SEQUENCES AND TRACKS
 - Track mutes per sequence, as on the MPC Live: each sequence keeps its own
   track mutes. A song that you export to a sequence keeps the track mutes
   of each part.
-- Half Seq and Double Seq (SHIFT + PAD 2 / 3) change all drum tracks of the
-  sequence.
-- Load Kit: when another track has the name of the kit, the track gets its
-  own name (for example "Drum 001-2"). Each track keeps its notes when you
-  save.
-- Load Project: when two tracks have the same name, the second track gets
-  its own name (for example "Drum 001-2"). New notes on both tracks stay
-  when you save.
 - Hold PAD BANK and push - or +: the current track moves one place up or
-  down. It changes places with the track next to it. A popup shows both
-  tracks, for example "Swap Tracks: T01 Drums <> T02 Sample". One UNDO
-  moves it back. This works on all screens.
+  down. One UNDO moves it back. This works on all screens.
 
 STEP EDIT
 
 - Note Repeat works in Step Edit: in the Pad View (also with Steps on) and
   in the Track View.
-- Step Edit: cut notes and paste them on another place. Pad View: Cut
-  (SHIFT + B1). Track View: Copy, then ERASE.
-- Track View: Copy and Duplicate take up to 8192 notes. With more notes, the
-  MPC shows "Too many notes" and copies nothing.
-- Step Edit keeps the cursor, the selection and the copied notes when you
-  open a stock screen (for example Resample or the FADER menu) and go back.
+- Step Edit: cut notes and paste them in another place. Pad View: Cut
+  (SHIFT + B1). Track View: Copy the notes, then ERASE them.
 
 MIXER AND EFFECTS
 
@@ -65,17 +52,18 @@ MIXER AND EFFECTS
 - Pad FX: Fixed effects stay on when you leave the Pad FX screen, as Latch.
 - SHIFT + PAD FX can open the stock Pad FX screen at once (Settings >
   Shortcuts). The default is Flex Beat, as stock.
+- FX Select and the Insert FX list show an icon for each effect group.
 
 KNOBS
 
-- Sample Tail and 16 LEVELS Scale: the encoder changes the value of the last
+- Sample Tail and 16 Levels Scale: the encoder changes the value of the last
   knob that you turned, as on the EQ page.
 
 SAMPLE RECORD AND RESAMPLE
 
-- Resample Pad: also prints the Pad FX that are on (Fixed or Latch), with
-  its own On / Off choice. SHIFT + K1 sets the tail (0 to 10 seconds) when
-  an effect is in the new sample.
+- Resample Pad: also prints the Pad FX that are on (Fixed or Latch). You set
+  the Pad FX print and the Knob FX print On or Off. SHIFT + K1 sets the tail
+  (0 to 10 seconds) when an effect is in the new sample.
 
 LOADING AND SAVING
 
@@ -84,8 +72,39 @@ LOADING AND SAVING
   you can compare files with your kit. B3 is the stock auto-preview.
 - Sample Select: New Folder also works in an empty folder.
 - Browsers: the FADER scrolls the list, as a scrollbar.
+
+FIXED
+
+- Load Kit and Load Project: two drum tracks with the same name lost notes
+  when you saved. Each track gets its own name (for example "Drum 001-2")
+  and keeps its notes.
+- Load Kit, then UNDO: the next save could crash when two tracks had the
+  name of the kit.
+- Half Seq and Double Seq (SHIFT + PAD 2 / 3) change all drum tracks. They
+  changed only track 1.
+- Track Mute: the pad of a muted track is light red. It was off, as a pad
+  without a track.
+- Pad EQ: a kill also stops the attack of a new note. The first part of a
+  snare or a clap went through the kill.
+- MAIN VOLUME works in the Pad View and the Track View. It did nothing
+  there, or it changed the steps.
+- Step Edit keeps the cursor, the selection and the copied notes when you
+  open a stock screen (for example Resample or the FADER menu) and go back.
+  The Pad View opened again at step 1.
+- Track View: Paste after Copy and ERASE puts the notes back in the same
+  place. Paste did nothing there.
+- Track View: Copy and Duplicate take up to 8192 notes. With more than 512
+  notes, they copied only a part. With more than 8192 notes, the MPC shows
+  "Too many notes".
 - The folder pages (Home Folder, Save Sample, Save Project, Export) go up
-  to the root of the SD card, as Sample Select.
+  to the root of the SD card, as Sample Select. They stopped in the folder
+  MPC-Sample.
+- Sample Select: a push on the selected pad on a folder does not open
+  New Folder.
+- Sample Select: Prev. Vol. does not cover a long folder name, and does
+  not show on a folder.
+- Sample Select: New Folder (B3) shows as a stock button, not as the
+  Preview box.
 
 KNOWN ISSUES
 
