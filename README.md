@@ -65,13 +65,16 @@ This list shows only the main features. SampQOL OS has many more: see
 Download the zip from [Releases](../../releases). Use the file with the
 highest version number. The release notes show the SHA256 of the zip.
 
-Download SampQOL OS only from this page. Do not upload or share the zip
-(see [LICENSE](LICENSE)).
+Download SampQOL OS only from [Releases](../../releases) or from
+[beatops.io](https://beatops.io). Do not upload or share the zip (see
+[LICENSE](LICENSE)).
 
 ## Install
 
-1. Make sure that the MPC Sample has firmware 1.3.0: push **SHIFT** +
-   **PAD 8** (MIDI Config). The top right of the display must show **v1.3.0**.
+1. Make sure that the MPC Sample has firmware 1.3.0. Start the MPC
+   **without** the SampQOL card. Push **SHIFT** + **PAD 8** (MIDI Config). The
+   top right of the display must show **v1.3.0**. (When SampQOL OS runs, it
+   shows the SampQOL OS version there.)
 2. Unzip the zip file. Copy the folder `autorun` to the root of an exFAT
    microSD card.
 3. Set the MPC off. Put the card in the MPC. Set the MPC on.
