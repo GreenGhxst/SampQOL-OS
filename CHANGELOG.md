@@ -21,7 +21,7 @@ Version 0.1.5 (1 November 2026)
 
 HIGHLIGHTS
 
-- Track mutes per sequence, as on the MPC Live.
+- Track mutes per sequence, as on the MPC Live/One/X etc.
 - Hold PAD BANK and push - or +: the current track moves up or down.
 - Note Repeat in Step Edit.
 - Step Edit: cut notes and paste them on another place.
