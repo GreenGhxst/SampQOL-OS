@@ -24,8 +24,8 @@ HIGHLIGHTS
 
 - Track mutes per sequence, as on the MPC Live/One/X etc.
 - Hold PAD BANK and push - or +: the current track moves up or down in the track order.
-- Note Repeat in Step Edit.
-- Step Edit: cut notes and paste them in another place.
+- Note Repeat in Pad View (Step Edit) and Track View.
+- Pad View: cut notes and paste them in another place.
 - Sample Select: pads that have a sample can play their own sound next to
   the preview (Own Sample).
 - Resample Pad can also print the Pad FX (On / Off).
