@@ -23,7 +23,7 @@ Version 0.1.5 (1 November 2026)
 HIGHLIGHTS
 
 - Track mutes per sequence, as on the MPC Live/One/X etc.
-- Hold PAD BANK and push - or +: the current track moves up or down.
+- Hold PAD BANK and push - or +: the current track moves up or down in the track order.
 - Note Repeat in Step Edit.
 - Step Edit: cut notes and paste them in another place.
 - Sample Select: pads that have a sample can play their own sound next to
