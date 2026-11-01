@@ -70,6 +70,8 @@ main ul { list-style: none; }
 main ul > li { position: relative; }
 main ul > li::before { content: ""; position: absolute; left: -16px; top: .66em;
   width: 6px; height: 6px; background: var(--mark); border-radius: 1px; }
+main img { display: block; width: 100%; max-width: 640px; height: auto; margin: 16px 0;
+  image-rendering: pixelated; border: 1px solid var(--rule); border-radius: 4px; }
 code { font: 13.5px var(--mono); background: var(--chip); padding: 1px 5px; border-radius: 2px; }
 blockquote { margin: 20px 0; padding: 12px 16px; background: var(--card);
   border: 1px solid var(--rule); border-left: 2px solid var(--mark); border-radius: 0 4px 4px 0; }
@@ -880,11 +882,15 @@ playhead or the cursor. See below.</li>
 the stock Pad FX screen at once. Flex Beat is on <strong>B2</strong> of that screen.</p>
 </blockquote>
 <blockquote>
-<p><strong>Tip:</strong> A function can be on more than one pad. When a pad has a function,
-its stock function is gone. For example, with <strong>Shift+Pad 5</strong> = <strong>Mixer</strong>,
-you open the master Color Comp. in the Mixer: <strong>Master</strong>, <strong>Edit</strong>.
-<strong>SHIFT</strong> + <strong>PAD 9</strong>, <strong>10</strong>, <strong>11</strong> and <strong>16</strong> are not in the list: the
-mod already adds to their stock function.</p>
+<p><strong>Tip:</strong> You can give more than one pad the same function. A pad with a new
+function loses its stock function. Example: in stock, <strong>SHIFT</strong> + <strong>PAD 5</strong>
+opens the master Color Comp. When you set <strong>Shift+Pad 5</strong> to <strong>Mixer</strong>, open
+the master Color Comp. in the Mixer: select <strong>Master</strong>, then push <strong>Edit</strong>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> <strong>SHIFT</strong> + <strong>PAD 9</strong>, <strong>10</strong>, <strong>11</strong> and <strong>16</strong> are not in the
+list. They always keep their stock function, because the mod adds its own
+functions to those screens.</p>
 </blockquote>
 <p><strong>View Follow</strong></p>
 <p>View Follow sets what the Pad View page and the Track View window follow
