@@ -341,3 +341,6 @@ KNOWN ISSUES
   the Kill EQ insert plays as a PEQ 2-Band, 2-Shelf (no kill).
 - Without SampQOL OS, a chord on one pad in Note On mode stops at the
   shortest note.
+- The Knob FX is global: it is on the master, and all pads play through
+  it. You cannot select pads for the Knob FX one by one, as in stock
+  (FX Select).
