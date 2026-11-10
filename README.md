@@ -123,3 +123,11 @@ SampQOL OS (c) 2026 Snare Bes. All rights reserved.
 Akai Professional, MPC and MPC Sample are trademarks of inMusic Brands, Inc.
 SampQOL OS is not affiliated with, endorsed by or supported by inMusic
 Brands, Inc. or Akai Professional.
+
+## Experimental in this fork: FM1 synth (fm1mix)
+
+The folder [`fm1`](fm1/) holds an add-on for your own SampQOL OS card: the
+open-source DX7 engine of the M-VAVE FM1 runs inside the MPC Sample app and
+is mixed into the MPC output, played from a MIDI keyboard or a SampQOL MIDI
+track. It is built and tested in a simulated app only, not yet on an MPC.
+See [fm1/README.md](fm1/README.md).

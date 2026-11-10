@@ -1,0 +1,38 @@
+--- autorun/qol-run.sh
++++ autorun/qol-run.sh
+@@ -5,6 +5,12 @@
+ echo $$ > /run/qol-run.pid
+ 
+ cp "$DIR/mpcqol.so" "$SO" 2>/dev/null
++# fm1mix: open FM1 DX7 synth mixed into the app (see fm1/README.md)
++FM1SO=
++if [ -f "$DIR/fm1/fm1mix.so" ]; then
++    cp "$DIR/fm1/fm1mix.so" /tmp/fm1mix.so 2>/dev/null && chmod 644 /tmp/fm1mix.so && FM1SO=/tmp/fm1mix.so
++    export FM1MIX_DIR="$DIR/fm1"
++fi
+ chmod 644 "$SO" 2>/dev/null
+ [ -f "$SO" ] || exit 0
+ 
+@@ -52,9 +58,10 @@
+     [ -n "$SNAPSH" ] && { sh "$SNAPSH" watch & WATCH=$!; }
+     ( ulimit -S -s 1024
+       export MALLOC_ARENA_MAX=1
+-      export LD_PRELOAD="$SO"
++      export LD_PRELOAD="$SO${FM1SO:+:$FM1SO}"
+       setarch -R -- "$STOCK" )
+     CODE=$?
++    [ -n "$FM1SO" ] && cp /tmp/fm1mix.log "$DIR/fm1/fm1mix.log" 2>/dev/null
+     if [ -n "$WATCH" ]; then
+         kill "$WATCH" 2>/dev/null
+         wait "$WATCH" 2>/dev/null
+--- autorun/autorun.sh
++++ autorun/autorun.sh
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ DIR="$(cd "$(dirname "$0")" && pwd)"
+ 
+-PINS="b1cc66b0176cf2bcc4fecd56340533c6d0e57d168867e8ac5c1a23457a31dd79  qol-run.sh
++PINS="50338572a57073133253aa6100168449c55da21a973679c1b392dc87d2fc078c  qol-run.sh
+ fe73a2752f3fab0b695b76ceca1f3f152d2820637558d8a2d6f1a6e847df5e89  qol-snap.sh
+ fc9285ac4a3145e04c1b162e3f5058a9c447a9752fec1e06510156ff20575dbd  mpcqol.so
+ efa1c0fced59194e1293a87a05d03f96f8ae40c989388ff3849f06aa9c8dba88  qol-splash.raw"
