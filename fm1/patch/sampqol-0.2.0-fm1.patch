@@ -36,3 +36,10 @@
  fe73a2752f3fab0b695b76ceca1f3f152d2820637558d8a2d6f1a6e847df5e89  qol-snap.sh
  fc9285ac4a3145e04c1b162e3f5058a9c447a9752fec1e06510156ff20575dbd  mpcqol.so
  efa1c0fced59194e1293a87a05d03f96f8ae40c989388ff3849f06aa9c8dba88  qol-splash.raw"
+--- autorun/autorun.check
++++ autorun/autorun.check
+@@ -1 +1 @@
+-cb99ed436e76f65b602e49a478ea7ea6844e5d0b34b78a00ada1787970bd09bb
+\ No newline at end of file
++e0a830c2a20de1d03bf224b882777bbf539731aff4b38035a63db970a7cbf3b1
+\ No newline at end of file

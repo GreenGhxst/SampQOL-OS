@@ -1,0 +1,25 @@
+[package]
+name = "fm1mod"
+description = "FM1 DX7 synth for the Akai MPC Sample, built on mpc-sample-sdk"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+mpc-sample-sdk = { path = "../sdk" }
+libc = "0.2"
+
+[build-dependencies]
+cc = "1"
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = false

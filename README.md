@@ -126,8 +126,9 @@ Brands, Inc. or Akai Professional.
 
 ## Experimental in this fork: FM1 synth (fm1mix)
 
-The folder [`fm1`](fm1/) holds an add-on for your own SampQOL OS card: the
-open-source DX7 engine of the M-VAVE FM1 runs inside the MPC Sample app and
-is mixed into the MPC output, played from a MIDI keyboard or a SampQOL MIDI
-track. It is built and tested in a simulated app only, not yet on an MPC.
+The folder [`fm1`](fm1/) brings the open-source DX7 engine of the M-VAVE FM1
+to the MPC Sample in two forms: `fm1mix`, an add-on for your own SampQOL OS
+card (MIDI keyboard or SampQOL MIDI track plays it), and `fm1mod`, a
+stand-alone mod on the Rust mpc-sample-sdk with pads, a screen panel and
+voice selection on the encoder. Neither has run on a real MPC yet.
 See [fm1/README.md](fm1/README.md).

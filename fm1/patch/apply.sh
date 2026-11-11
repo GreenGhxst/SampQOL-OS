@@ -7,8 +7,10 @@
 #   1. keeps a copy of the original qol-run.sh and autorun.sh in autorun/fm1/orig
 #   2. inserts the fm1mix lines into qol-run.sh (LD_PRELOAD gets a 2nd library)
 #   3. writes the new sha256 of qol-run.sh into the PINS list of autorun.sh
-#   4. copies fm1mix.so, fm1.conf and the optional bank into autorun/fm1
-#   5. runs the same pin check as autorun.sh to prove the folder will start
+#   4. rewrites autorun.check, which the stock firmware verifies before it
+#      runs autorun.sh: sha256(autorun.json + autorun.sh + a fixed UUID)
+#   5. copies fm1mix.so, fm1.conf and the optional bank into autorun/fm1
+#   6. runs the same pin check as autorun.sh to prove the folder will start
 #
 # The SampQOL OS license allows you to modify it for your own use. Do not
 # share the patched folder; share this script and a link to the release.
@@ -23,7 +25,7 @@ AUTORUN=${1:-}; SO=${2:-}; CONF=${3:-}; BANK=${4:-}
 [ -f "$SO" ] || die "$SO not found (run 'make' in the fm1 folder first)"
 [ -z "$CONF" ] || [ -f "$CONF" ] || die "$CONF not found"
 [ -z "$BANK" ] || [ -f "$BANK" ] || die "$BANK not found"
-for f in autorun.sh qol-run.sh mpcqol.so; do
+for f in autorun.sh autorun.json autorun.check qol-run.sh mpcqol.so; do
     [ -f "$AUTORUN/$f" ] || die "$AUTORUN/$f is missing: this is not a SampQOL OS autorun folder"
 done
 command -v sha256sum >/dev/null || die "sha256sum is needed"
@@ -32,6 +34,22 @@ RUN="$AUTORUN/qol-run.sh"; ASH="$AUTORUN/autorun.sh"; FM1="$AUTORUN/fm1"
 mkdir -p "$FM1/orig"
 [ -f "$FM1/orig/qol-run.sh" ] || cp "$RUN" "$FM1/orig/qol-run.sh"
 [ -f "$FM1/orig/autorun.sh" ] || cp "$ASH" "$FM1/orig/autorun.sh"
+[ -f "$FM1/orig/autorun.check" ] || cp "$AUTORUN/autorun.check" "$FM1/orig/autorun.check"
+command -v python3 >/dev/null || die "python3 is needed to rewrite autorun.check"
+
+# The stock firmware runs autorun.sh only when autorun.check matches.
+check_value() {
+    python3 -I - "$AUTORUN" <<'PY'
+import hashlib, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+blob = (root / "autorun.json").read_bytes() + (root / "autorun.sh").read_bytes()
+blob += b"f7bed1c9-7e90-4731-9194-c996666b4331"
+print(hashlib.sha256(blob).hexdigest())
+PY
+}
+if [ "$(check_value)" != "$(tr -d '\r\n' < "$AUTORUN/autorun.check")" ]; then
+    die "autorun.check does not match autorun.json + autorun.sh of this folder. Is this an unmodified SampQOL OS release? (SampQOL OS 0.2.0 matches)"
+fi
 
 if grep -q 'fm1mix' "$RUN"; then
     echo "qol-run.sh already has the fm1mix lines: only updating files and pins"
@@ -76,6 +94,7 @@ TMP="$ASH.fm1tmp"
 sed -E "s/^(PINS=\")?[0-9a-f]{64}  qol-run.sh\$/\1$NEW  qol-run.sh/" "$ASH" > "$TMP"
 mv -f "$TMP" "$ASH"
 chmod 755 "$ASH" 2>/dev/null || true
+printf '%s' "$(check_value)" > "$AUTORUN/autorun.check"
 
 cp "$SO" "$FM1/fm1mix.so"
 chmod 644 "$FM1/fm1mix.so"
@@ -96,5 +115,6 @@ fi
 echo "done:"
 echo "  $RUN            - starts the app with mpcqol.so and fm1mix.so"
 echo "  $ASH            - pins the new qol-run.sh"
+echo "  $AUTORUN/autorun.check         - rewritten for the new autorun.sh (stock firmware check)"
 echo "  $FM1/           - fm1mix.so, fm1.conf$( [ -n "$BANK" ] && printf ', %s' "$(basename "$BANK")" ), orig/"
 echo "Copy the whole autorun folder to the root of the exFAT card."
