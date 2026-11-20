@@ -1,0 +1,28 @@
+# MPC Sample VST Host Expansion: host.conf
+# Plain "key = value" lines. Unknown keys are ignored. Delete the file to
+# get these defaults back.
+
+# Plug-in hosting inside SampQOL (the runtime adapter). It stays off until a
+# verified integration exists for the installed app build; "on" then still
+# needs the crash guard to agree. Creating a file named DISABLE next to this
+# file turns everything off whatever is written here.
+hosting = off
+
+# Folders the scanner may read, relative to the card root. Nothing else is read.
+plugin_dir = VST-Expansion/Plugins/Instruments
+plugin_dir = VST-Expansion/Plugins/Effects
+
+# Extra folders for libraries a plug-in needs and the MPC lacks.
+library_dir = VST-Expansion/Lib
+
+# Scan limits.
+scan_timeout_ms = 10000
+scan_memory_mb = 512
+
+# Engine.
+block_size = 128
+max_plugins = 4
+max_events_per_block = 256
+
+# Safe mode: start with every plug-in bypassed.
+safe_mode = off

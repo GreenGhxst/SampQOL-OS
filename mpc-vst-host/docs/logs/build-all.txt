@@ -1,0 +1,85 @@
+[  4%] Built target mock_instrument
+[  8%] Built target bad_no_entry
+[ 13%] Built target mock_effect
+[ 33%] Built target mpcvst
+[ 37%] Built target bad_crash_open
+[ 42%] Built target bad_wrong_magic
+[ 46%] Built target bad_hang
+[ 51%] Built target bad_crash_process
+[ 55%] Built target bad_nan_output
+[ 60%] Built target bad_huge_io
+[ 64%] Built target bad_no_replacing
+[ 66%] Linking C shared library plugins/fakedep/libmpcvst_fakedep.so
+[ 71%] Built target test_engine
+[ 75%] Built target test_compat
+[ 80%] Built target mpcvst-probe
+[ 82%] Built target mpcvst_fakedep
+[ 86%] Built target mpcvst-cli
+[ 91%] Built target test_plugin_manager
+[ 95%] Built target test_host_core
+[ 97%] Linking C shared module plugins/bad_missing_dep.so
+Deleting the fake dependency so bad_missing_dep cannot load
+[100%] Built target bad_missing_dep
+Test project /home/user/SampQOL-OS/mpc-vst-host/build
+    Start 1: test_host_core
+1/7 Test #1: test_host_core ...................   Passed    0.01 sec
+    Start 2: test_plugin_manager
+2/7 Test #2: test_plugin_manager ..............   Passed    3.03 sec
+    Start 3: test_engine
+3/7 Test #3: test_engine ......................   Passed    0.00 sec
+    Start 4: test_compat
+4/7 Test #4: test_compat ......................   Passed    0.01 sec
+    Start 5: cli_render
+5/7 Test #5: cli_render .......................   Passed    0.01 sec
+    Start 6: cli_info
+6/7 Test #6: cli_info .........................   Passed    0.00 sec
+    Start 7: cli_compat_not_in_app
+7/7 Test #7: cli_compat_not_in_app ............   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   3.06 sec
+[  4%] Built target mock_effect
+[  8%] Built target bad_no_entry
+[ 13%] Built target mock_instrument
+[ 33%] Built target mpcvst
+[ 37%] Built target bad_crash_open
+[ 42%] Built target bad_wrong_magic
+[ 46%] Built target bad_hang
+[ 51%] Built target bad_crash_process
+[ 55%] Built target bad_nan_output
+[ 60%] Built target bad_huge_io
+[ 66%] Linking C shared library plugins/fakedep/libmpcvst_fakedep.so
+[ 66%] Built target bad_no_replacing
+[ 71%] Built target test_engine
+[ 75%] Built target test_compat
+[ 80%] Built target mpcvst-probe
+[ 82%] Built target mpcvst_fakedep
+[ 86%] Built target mpcvst-cli
+[ 91%] Built target test_host_core
+[ 95%] Built target test_plugin_manager
+[ 97%] Linking C shared module plugins/bad_missing_dep.so
+Deleting the fake dependency so bad_missing_dep cannot load
+[100%] Built target bad_missing_dep
+  mpcvst: 301160 bytes, GLIBC <= 2.38, GLIBCXX <= 3.4.29
+  mpcvst-probe: 78072 bytes, GLIBC <= 2.38, GLIBCXX <= 3.4.21
+verify-arm64: OK
+Test project /home/user/SampQOL-OS/mpc-vst-host/build-arm64
+    Start 1: test_host_core
+1/7 Test #1: test_host_core ...................   Passed    0.18 sec
+    Start 2: test_plugin_manager
+2/7 Test #2: test_plugin_manager ..............   Passed    4.07 sec
+    Start 3: test_engine
+3/7 Test #3: test_engine ......................   Passed    0.08 sec
+    Start 4: test_compat
+4/7 Test #4: test_compat ......................   Passed    0.08 sec
+    Start 5: cli_render
+5/7 Test #5: cli_render .......................   Passed    0.13 sec
+    Start 6: cli_info
+6/7 Test #6: cli_info .........................   Passed    0.10 sec
+    Start 7: cli_compat_not_in_app
+7/7 Test #7: cli_compat_not_in_app ............   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   4.70 sec

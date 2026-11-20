@@ -1,0 +1,4 @@
+test_host_core: 120 checks, 0 failed
+test_plugin_manager: 85 checks, 0 failed
+test_engine: 65 checks, 0 failed
+test_compat: 30 checks, 0 failed

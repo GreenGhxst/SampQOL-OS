@@ -1,0 +1,8 @@
+# aarch64 build under qemu-user on the same x86_64 PC: emulation timing, NOT the MPC Sample
+machine: aarch64, rate 44100 Hz, block 128 frames (budget 2902.5 us)
+plug-in: Mock Instrument (instrument)
+ 0 instance(s): avg      3.8 us/block (  0.13%), max    764.2 us ( 26.33%), 0/1034 blocks over budget, peak 0.000
+ 1 instance(s): avg     84.7 us/block (  2.92%), max   1838.5 us ( 63.34%), 0/1034 blocks over budget, peak 0.790
+ 2 instance(s): avg    161.3 us/block (  5.56%), max    800.1 us ( 27.56%), 0/1034 blocks over budget, peak 1.581
+ 4 instance(s): avg    324.2 us/block ( 11.17%), max    993.1 us ( 34.22%), 0/1034 blocks over budget, peak 3.162
+note: offline timing on this machine; only a run on the MPC Sample itself measures the device.

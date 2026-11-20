@@ -1,0 +1,13 @@
+# A C major chord, then a single note with a bend and a sustain pedal.
+0.0  on 1 60 100
+0.0  on 1 64 90
+0.0  on 1 67 80
+0.4  off 1 60
+0.4  off 1 64
+0.4  off 1 67
+0.5  sustain 1 on
+0.5  on 1 72 110
+0.55 off 1 72
+0.6  bend 1 2000
+0.8  bend 1 0
+0.9  sustain 1 off

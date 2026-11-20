@@ -1,0 +1,20 @@
+# desktop bench (x86_64, 4 cores, Intel(R) Xeon(R) Processor @ 2.10GHz) 2026-11-20
+# mock instrument: N chains with one instrument each, summed
+machine: x86_64, rate 44100 Hz, block 128 frames (budget 2902.5 us)
+plug-in: Mock Instrument (instrument)
+ 0 instance(s): avg      0.3 us/block (  0.01%), max      5.4 us (  0.19%), 0/1723 blocks over budget, peak 0.000
+ 1 instance(s): avg      3.9 us/block (  0.13%), max     42.6 us (  1.47%), 0/1723 blocks over budget, peak 0.792
+ 2 instance(s): avg      7.3 us/block (  0.25%), max     65.4 us (  2.25%), 0/1723 blocks over budget, peak 1.584
+ 4 instance(s): avg     14.6 us/block (  0.50%), max     54.5 us (  1.88%), 0/1723 blocks over budget, peak 3.169
+ 8 instance(s): avg     29.3 us/block (  1.01%), max    169.6 us (  5.84%), 0/1723 blocks over budget, peak 6.338
+note: offline timing on this machine; only a run on the MPC Sample itself measures the device.
+
+# mock effect: one chain with N effects in series
+machine: x86_64, rate 44100 Hz, block 128 frames (budget 2902.5 us)
+plug-in: Mock Effect (effect)
+ 0 instance(s): avg      0.2 us/block (  0.01%), max      0.7 us (  0.03%), 0/1723 blocks over budget, peak 0.500
+ 1 instance(s): avg      1.2 us/block (  0.04%), max     31.4 us (  1.08%), 0/1723 blocks over budget, peak 0.500
+ 2 instance(s): avg      2.2 us/block (  0.08%), max     20.1 us (  0.69%), 0/1723 blocks over budget, peak 0.500
+ 4 instance(s): avg      5.0 us/block (  0.17%), max    353.9 us ( 12.19%), 0/1723 blocks over budget, peak 0.500
+ 8 instance(s): avg      8.3 us/block (  0.29%), max     38.7 us (  1.33%), 0/1723 blocks over budget, peak 0.500
+note: offline timing on this machine; only a run on the MPC Sample itself measures the device.

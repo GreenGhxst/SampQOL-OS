@@ -1,0 +1,19 @@
+Test project /home/user/SampQOL-OS/mpc-vst-host/build
+    Start 1: test_host_core
+1/7 Test #1: test_host_core ...................   Passed    0.01 sec
+    Start 2: test_plugin_manager
+2/7 Test #2: test_plugin_manager ..............   Passed    3.03 sec
+    Start 3: test_engine
+3/7 Test #3: test_engine ......................   Passed    0.00 sec
+    Start 4: test_compat
+4/7 Test #4: test_compat ......................   Passed    0.00 sec
+    Start 5: cli_render
+5/7 Test #5: cli_render .......................   Passed    0.01 sec
+    Start 6: cli_info
+6/7 Test #6: cli_info .........................   Passed    0.00 sec
+    Start 7: cli_compat_not_in_app
+7/7 Test #7: cli_compat_not_in_app ............   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   3.06 sec
