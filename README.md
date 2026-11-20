@@ -123,3 +123,13 @@ SampQOL OS (c) 2026 Snare Bes. All rights reserved.
 Akai Professional, MPC and MPC Sample are trademarks of inMusic Brands, Inc.
 SampQOL OS is not affiliated with, endorsed by or supported by inMusic
 Brands, Inc. or Akai Professional.
+
+## DISKMODE Web Console (development)
+
+The `webconsole/` directory holds the DISKMODE Web Console: a browser-based
+file-management console that runs on the MPC Sample next to SampQOL OS and
+is reached over the USB-C network. It is a separate program with its own
+licence and does not change SampQOL OS. See
+[webconsole/README.md](webconsole/README.md) for the feature status (nothing
+is hardware-tested yet), `webconsole/docs/AUDIT.md` for the source audit and
+`webconsole/docs/BUILD.md` for build and installation instructions.

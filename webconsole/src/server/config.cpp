@@ -64,7 +64,7 @@ Status Config::load(const std::string& path, Config& out) {
 
 Status Config::validate() const {
     if (data_dir.empty()) return Status::fail(Err::invalid_argument, "data_dir is required");
-    if (port < 1 || port > 65535) return Status::fail(Err::invalid_argument, "port out of range");
+    if (port < 0 || port > 65535) return Status::fail(Err::invalid_argument, "port out of range");   // 0 = ephemeral (self-test)
     if (tls_cert.empty() != tls_key.empty()) return Status::fail(Err::invalid_argument, "tls_cert and tls_key must be set together");
     if (auth.pairing_code.size() < 6) return Status::fail(Err::invalid_argument, "auth.pairing_code must have at least 6 characters");
     if (upload_chunk_max < 65536 || upload_chunk_max > (64u << 20)) return Status::fail(Err::invalid_argument, "upload_chunk_max must be between 64 KiB and 64 MiB");

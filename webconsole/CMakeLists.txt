@@ -11,9 +11,12 @@ endif()
 option(DM_WITH_TLS "Enable HTTPS through OpenSSL" ON)
 option(DM_BUILD_TESTS "Build the test binaries" ON)
 option(DM_STATIC_LIBSTDCXX "Link libstdc++/libgcc statically (useful for the device)" OFF)
+option(DM_FULLY_STATIC "Link the whole binary statically (no glibc version dependency on the device)" OFF)
 
 add_compile_options(-Wall -Wextra -Wno-unused-parameter)
-if(DM_STATIC_LIBSTDCXX)
+if(DM_FULLY_STATIC)
+  add_link_options(-static)
+elseif(DM_STATIC_LIBSTDCXX)
   add_link_options(-static-libstdc++ -static-libgcc)
 endif()
 
