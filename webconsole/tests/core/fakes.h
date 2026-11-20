@@ -24,8 +24,8 @@ struct FakeProbe : dm::SystemProbe {
 
 inline std::vector<dm::VolumeRule> test_rules() {
     std::vector<dm::VolumeRule> r;
-    r.push_back({"sdcard", "microSD", dm::VolumeKind::removable, "", "/media/", {"exfat", "vfat", "ext4", "tmpfs", "fake"}, "", true, true, {"autorun", "mpcqol.conf", ".diskmode"}});
-    r.push_back({"internal", "Internal", dm::VolumeKind::internal, "", "/data", {}, "UserContent/Samples", false, false, {}});
-    r.push_back({"usb", "USB drive", dm::VolumeKind::usb, "", "/mnt/usb/", {}, "", true, false, {}});
+    r.push_back({"sdcard", "microSD", dm::VolumeKind::removable, "", "/media/", {"exfat", "vfat", "ext4", "tmpfs", "fake"}, "", false, true, true, {"autorun", "mpcqol.conf", ".diskmode"}});
+    r.push_back({"internal", "Internal", dm::VolumeKind::internal, "/data", "", {}, "UserContent/Samples", false, false, false, {}});
+    r.push_back({"usb", "USB drive", dm::VolumeKind::usb, "", "/mnt/usb/", {}, "", false, true, false, {}});
     return r;
 }

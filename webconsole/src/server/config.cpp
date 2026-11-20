@@ -39,7 +39,7 @@ Config Config::from_json(const json& j) {
 json Config::to_json() const {
     json vols = json::array();
     for (const auto& r : volumes) vols.push_back(json{{"id", r.id}, {"name", r.name}, {"kind", volume_kind_name(r.kind)},
-        {"mount_point", r.mount_point}, {"mount_prefix", r.mount_prefix}, {"fs_types", r.fs_types}, {"subdir", r.subdir},
+        {"mount_point", r.mount_point}, {"mount_prefix", r.mount_prefix}, {"fs_types", r.fs_types}, {"subdir", r.subdir}, {"directory", r.directory},
         {"writable", r.writable}, {"format_candidate", r.format_candidate}, {"protected_paths", r.protected_paths}});
     return json{{"bind_host", bind_host}, {"port", port}, {"tls_cert", tls_cert}, {"tls_key", tls_key},
                 {"allow_plain_http", allow_plain_http}, {"data_dir", data_dir}, {"web_root", web_root},

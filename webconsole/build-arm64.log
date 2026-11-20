@@ -1,0 +1,36 @@
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/aarch64-linux-gnu-g++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/SampQOL-OS/webconsole/build-arm64
+[  3%] Building CXX object CMakeFiles/dm_core.dir/src/core/volume_registry.cpp.o
+[  6%] Building CXX object CMakeFiles/dm_core.dir/src/util/sha256.cpp.o
+[  9%] Building CXX object CMakeFiles/dm_core.dir/src/core/path_auth.cpp.o
+[ 12%] Building CXX object CMakeFiles/dm_core.dir/src/core/file_ops.cpp.o
+[ 16%] Building CXX object CMakeFiles/dm_core.dir/src/core/job_queue.cpp.o
+[ 19%] Building CXX object CMakeFiles/dm_core.dir/src/util/common.cpp.o
+[ 22%] Building CXX object CMakeFiles/dm_core.dir/src/core/journal.cpp.o
+[ 25%] Building CXX object CMakeFiles/dm_core.dir/src/core/transfer_manager.cpp.o
+[ 29%] Building CXX object CMakeFiles/dm_core.dir/src/core/wav.cpp.o
+/home/user/SampQOL-OS/webconsole/src/core/path_auth.cpp: In static member function 'static dm::Status dm::PathAuthorizer::resolve(const dm::VolumeInfo&, const dm::RelPath&, dm::Resolved&, bool)':
+/home/user/SampQOL-OS/webconsole/src/core/path_auth.cpp:120:64: warning: suggest parentheses around '&&' within '||' [-Wparentheses]
+  120 |         if (nfd < 0) return errno == ELOOP || errno == ENOTDIR && [&] { struct stat s2{}; return ::fstatat(cur.get(), rel.parts[i].c_str(), &s2, AT_SYMLINK_NOFOLLOW) == 0 && S_ISLNK(s2.st_mode); }()
+      |                                                                ^
+[ 32%] Building CXX object CMakeFiles/dm_core.dir/src/core/intelligence.cpp.o
+[ 35%] Building CXX object CMakeFiles/dm_core.dir/src/core/inbox.cpp.o
+[ 38%] Building CXX object CMakeFiles/dm_core.dir/src/core/screen.cpp.o
+[ 41%] Building CXX object CMakeFiles/dm_core.dir/src/core/format_guard.cpp.o
+[ 45%] Building CXX object CMakeFiles/dm_core.dir/src/core/network.cpp.o
+[ 48%] Linking CXX static library libdm_core.a
+[ 48%] Built target dm_core
+[ 51%] Building CXX object CMakeFiles/dm_server.dir/src/server/auth.cpp.o
+[ 54%] Building CXX object CMakeFiles/dm_server.dir/src/server/web_console.cpp.o
+[ 58%] Building CXX object CMakeFiles/dm_server.dir/src/server/config.cpp.o
+[ 61%] Building CXX object CMakeFiles/dm_server.dir/src/server/routes_extra.cpp.o

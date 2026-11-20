@@ -63,6 +63,7 @@ struct VolumeRule {
     std::string mount_prefix;       // e.g. /media/
     std::vector<std::string> fs_types; // optional filter
     std::string subdir;             // expose only this subdirectory of the mount
+    bool directory = false;         // simulation/testing: a plain directory, not a mount point
     bool writable = false;          // policy: writes permitted at all
     bool format_candidate = false;  // policy: may be offered to the format simulator
     std::vector<std::string> protected_paths; // relative prefixes refused for writes/deletes

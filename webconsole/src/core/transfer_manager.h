@@ -34,6 +34,9 @@ public:
     // Verifies size/hash. On success the staged file is complete and
     // `staged_path`/`sha256` are filled; the caller places it.
     Status finish(const std::string& id, const std::string& owner, std::string& staged_path, std::string& sha256);
+    // For an upload that already finished (e.g. a commit that hit a name
+    // conflict): returns the staged path and digest again.
+    Status completed(const std::string& id, const std::string& owner, std::string& staged_path, std::string& sha256) const;
     Status abort(const std::string& id, const std::string& owner);
     json get(const std::string& id, const std::string& owner) const;
     json list(const std::string& owner) const;

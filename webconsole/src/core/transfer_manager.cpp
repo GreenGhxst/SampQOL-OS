@@ -90,6 +90,15 @@ Status TransferManager::finish(const std::string& id, const std::string& owner, 
     return Status::good();
 }
 
+Status TransferManager::completed(const std::string& id, const std::string& owner, std::string& staged_path, std::string& sha256) const {
+    std::lock_guard<std::mutex> lk(mu_);
+    auto it = uploads_.find(id);
+    if (it == uploads_.end() || it->second->owner != owner) return Status::fail(Err::not_found, "upload not found");
+    if (it->second->state != "complete") return Status::fail(Err::invalid_argument, "upload is " + it->second->state);
+    staged_path = it->second->staging_path; sha256 = it->second->final_sha256;
+    return Status::good();
+}
+
 Status TransferManager::abort(const std::string& id, const std::string& owner) {
     std::lock_guard<std::mutex> lk(mu_);
     auto it = uploads_.find(id);

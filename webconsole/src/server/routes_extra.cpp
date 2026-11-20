@@ -57,7 +57,8 @@ void WebConsole::register_extra_routes() {
         json u = transfers_->get(id, c.session.id);
         if (u.is_null()) { send_status(res, Status::fail(Err::not_found, "upload not found")); return; }
         std::string staged, sha;
-        Status st = transfers_->finish(id, c.session.id, staged, sha);
+        Status st = u.value("state", "") == "complete" ? transfers_->completed(id, c.session.id, staged, sha)
+                                                        : transfers_->finish(id, c.session.id, staged, sha);
         if (!st.ok()) { send_status(res, st); return; }
         if (u.value("inbox", false)) {
             std::string item;
@@ -150,7 +151,8 @@ void WebConsole::register_extra_routes() {
     S.Post("/api/v1/collections", [this](const httplib::Request& req, httplib::Response& res) {
         Ctx c; if (!require(req, res, Role::viewer, true, c)) return;
         bool ok; json b = body_json(req, res, ok); if (!ok) return;
-        std::string id; send_status(res, intel_->collection_create(b.value("name", ""), id), json{{"id", id}});
+        std::string id; Status st = intel_->collection_create(b.value("name", ""), id);
+        send_status(res, st, json{{"id", id}});
     });
     S.Post("/api/v1/collections/:id/rename", [this](const httplib::Request& req, httplib::Response& res) {
         Ctx c; if (!require(req, res, Role::viewer, true, c)) return;

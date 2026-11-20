@@ -166,6 +166,12 @@ void VolumeRegistry::refresh() {
         v.id = r.id; v.name = r.name; v.kind = r.kind; v.policy_writable = r.writable;
         v.format_candidate = r.format_candidate; v.protected_paths = r.protected_paths;
         const MountEntry* match = nullptr;
+        MountEntry dir_entry;
+        if (r.directory) {
+            // Simulated volume backed by a plain directory (development and automated tests only).
+            dir_entry = MountEntry{"", r.mount_point, "directory", "rw"};
+            if (probe_->is_directory(r.mount_point)) match = &dir_entry;
+        } else
         for (const auto& m : mounts) {
             if (std::find(claimed.begin(), claimed.end(), m.mount_point) != claimed.end()) continue;
             bool ok = false;
@@ -221,13 +227,13 @@ std::vector<VolumeRule> VolumeRegistry::default_rules() {
     // by this project; see docs/AUDIT.md. Internal volumes default to read-only.
     std::vector<VolumeRule> r;
     r.push_back({"sdcard", "microSD card", VolumeKind::removable, "", "/media/", {"exfat", "vfat", "msdos", "fuseblk"}, "",
-                 true, true, {"autorun", "mpcqol.conf", ".diskmode"}});
+                 false, true, true, {"autorun", "mpcqol.conf", ".diskmode"}});
     r.push_back({"internal-samples", "Internal: Samples", VolumeKind::internal, "/data", "", {}, "UserContent/Samples",
-                 false, false, {}});
+                 false, false, false, {}});
     r.push_back({"internal-projects", "Internal: Projects", VolumeKind::internal, "/data", "", {}, "UserContent/Projects/User",
-                 false, false, {}});
+                 false, false, false, {}});
     r.push_back({"factory-content", "Factory content (read-only)", VolumeKind::internal, "/content", "", {}, "",
-                 false, false, {}});
+                 false, false, false, {}});
     return r;
 }
 
@@ -243,6 +249,7 @@ std::vector<VolumeRule> VolumeRegistry::rules_from_json(const json& j) {
         r.mount_prefix = e.value("mount_prefix", "");
         r.fs_types = e.value("fs_types", std::vector<std::string>{});
         r.subdir = e.value("subdir", "");
+        r.directory = e.value("directory", false);
         r.writable = e.value("writable", false);
         r.format_candidate = e.value("format_candidate", false);
         r.protected_paths = e.value("protected_paths", std::vector<std::string>{});
