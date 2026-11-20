@@ -39,7 +39,11 @@ struct RelPath {
     std::string leaf() const { return parts.empty() ? std::string() : parts.back(); }
     RelPath child(const std::string& name) const;
     bool starts_with(const RelPath& prefix) const;
+    // Case-insensitive (ASCII) prefix test: the SD card filesystems (exFAT,
+    // FAT) resolve names case-insensitively, so protection must too.
+    bool starts_with_ci(const RelPath& prefix) const;
 };
+bool names_equal_ci(const std::string& a, const std::string& b);
 
 // Validates a client-supplied relative path. Refuses absolute paths, "." and
 // "..", empty components, backslashes, control characters, over-long names.

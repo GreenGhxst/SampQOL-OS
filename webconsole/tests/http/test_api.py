@@ -208,6 +208,7 @@ class ApiTests(unittest.TestCase):
         st, j, _ = c.req("GET", "/api/v1/files?volume=../sdcard&path="); self.assertEqual(st, 400)
         st, j, _ = c.req("GET", "/api/v1/files?volume=nope&path="); self.assertEqual(st, 404)
         st, j, _ = c.req("POST", "/api/v1/files/mkdir", {"volume": "sdcard", "path": "autorun/hack"}); self.assertEqual(st, 403); self.assertEqual(j["error"], "forbidden")
+        st, j, _ = c.req("POST", "/api/v1/files/mkdir", {"volume": "sdcard", "path": "AutoRun/hack"}); self.assertEqual(st, 403)   # case-insensitive filesystems
         st, j, _ = c.req("POST", "/api/v1/files/rename", {"volume": "sdcard", "path": "autorun", "name": "autorun-off"}); self.assertEqual(st, 403)
         st, j, _ = c.req("POST", "/api/v1/files/mkdir", {"volume": "internal-samples", "path": "newdir"}); self.assertEqual(st, 403); self.assertEqual(j["error"], "read_only")
         # listing hides the symlink entirely

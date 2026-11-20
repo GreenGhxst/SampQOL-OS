@@ -107,7 +107,7 @@ Status FileOps::list(const VolumeInfo& v, const RelPath& dir, const ListOptions&
         std::string name = e->d_name;
         if (name == "." || name == "..") continue;
         if (!o.show_hidden && name[0] == '.') continue;
-        if (name == kDataDir) continue;                       // application data, never listed
+        if (names_equal_ci(name, kDataDir)) continue;         // application data, never listed (case-insensitive fs)
         if (!filter.empty() && lower(name).find(filter) == std::string::npos) continue;
         struct stat s{};
         if (::fstatat(dfd.get(), name.c_str(), &s, AT_SYMLINK_NOFOLLOW) != 0) continue;
@@ -275,10 +275,17 @@ Status FileOps::copy_regular(int sdir, const std::string& sname, int ddir, const
 
 Status FileOps::copy_tree(int sdir, const std::string& sname, int ddir, const std::string& dname,
                           const OpContext& ctx, std::uint64_t& done, std::uint64_t total, std::vector<std::string>& temps,
-                          const std::string& dabs) {
+                          const std::string& dabs, bool overwrite) {
     struct stat st{};
     if (::fstatat(sdir, sname.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0) return errno_status(sname.c_str());
-    if (S_ISREG(st.st_mode)) return copy_regular(sdir, sname, ddir, dname, ctx, done, total, dabs, temps, false);
+    if (S_ISREG(st.st_mode)) {
+        if (overwrite) {   // never replace a directory with a file, even when merging
+            struct stat dst{};
+            if (::fstatat(ddir, dname.c_str(), &dst, AT_SYMLINK_NOFOLLOW) == 0 && S_ISDIR(dst.st_mode))
+                return Status::fail(Err::exists, "a folder with this name exists: " + dname);
+        }
+        return copy_regular(sdir, sname, ddir, dname, ctx, done, total, dabs, temps, overwrite);
+    }
     if (!S_ISDIR(st.st_mode)) return Status::fail(Err::forbidden, "skipped special file: " + sname);
     if (::mkdirat(ddir, dname.c_str(), 0755) != 0 && errno != EEXIST) return errno_status("mkdir");
     int sfd = ::openat(sdir, sname.c_str(), kDirFlags);
@@ -293,7 +300,7 @@ Status FileOps::copy_tree(int sdir, const std::string& sname, int ddir, const st
     while (dirent* e = ::readdir(dir)) {
         if (!std::strcmp(e->d_name, ".") || !std::strcmp(e->d_name, "..")) continue;
         if (ctx.cancelled()) { ::closedir(dir); return Status::fail(Err::cancelled, "cancelled"); }
-        Status r = copy_tree(sfd, e->d_name, dfd, e->d_name, ctx, done, total, temps, dabs + "/" + dname);
+        Status r = copy_tree(sfd, e->d_name, dfd, e->d_name, ctx, done, total, temps, dabs + "/" + dname, overwrite);
         if (r.code == Err::cancelled) { ::closedir(dir); return r; }
         if (!r.ok()) { if (!failures++) first = r.message; }
     }
@@ -324,12 +331,11 @@ Status FileOps::copy(const VolumeInfo& sv, const RelPath& src, const VolumeInfo&
     std::string dabs = dv.root + (dst_dir.empty() ? "" : "/" + dst_dir.str());
     std::string fname; bool overwrite = false;
     st = pick_destination(ddir.get(), dabs, wanted, c, fname, overwrite); if (!st.ok()) return st;
-    if (overwrite && rs.is_dir() && !PathAuthorizer::is_protected(dv, dst_dir.child(fname))) { /* merge */ }
     std::vector<std::string> temps;
     std::string jid = journal_.begin("copy", sv.id + ":" + src.str(), dv.id + ":" + dst_dir.child(fname).str());
     std::uint64_t done = 0;
     if (rs.is_file()) st = copy_regular(rs.dir.get(), rs.leaf, ddir.get(), fname, ctx, done, total, dabs, temps, overwrite);
-    else st = copy_tree(rs.dir.get(), rs.leaf, ddir.get(), fname, ctx, done, total, temps, dabs);
+    else st = copy_tree(rs.dir.get(), rs.leaf, ddir.get(), fname, ctx, done, total, temps, dabs, overwrite);
     for (auto& t : temps) ::unlink(t.c_str());
     journal_.finish(jid, st.ok() ? "done" : st.code == Err::cancelled ? "cancelled" : st.code == Err::partial ? "partial" : "failed", st.message);
     if (final_name) *final_name = fname;
@@ -615,7 +621,7 @@ Status FileOps::usage(const VolumeInfo& v, const RelPath& dir, std::uint64_t& fi
         if (!dd) return;
         while (dirent* e = ::readdir(dd)) {
             if (!std::strcmp(e->d_name, ".") || !std::strcmp(e->d_name, "..")) continue;
-            if (depth == 0 && !std::strcmp(e->d_name, kDataDir)) continue;
+            if (depth == 0 && names_equal_ci(e->d_name, kDataDir)) continue;
             struct stat s{};
             if (::fstatat(fd, e->d_name, &s, AT_SYMLINK_NOFOLLOW) != 0) continue;
             if (S_ISREG(s.st_mode)) { ++files; bytes += std::uint64_t(s.st_size); }

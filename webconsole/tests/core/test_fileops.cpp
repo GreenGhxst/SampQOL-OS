@@ -62,6 +62,11 @@ TEST(copy_file_and_tree_with_conflict_policies) {
     f.t.write("sd/Samples/Kit/kick.wav", "old");
     CHECK_OK(f.ops.copy(f.sd, f.P("Samples/User/kick.wav"), f.sd, f.P("Samples/Kit"), "", Conflict::overwrite, ctx, &name));
     CHECK_EQ(f.t.read("sd/Samples/Kit/kick.wav").size(), 5000u);
+    // merge into an existing folder with overwrite: files inside are replaced, folders never replaced by files
+    f.t.mkdir("usb/Kit/Sub"); f.t.write("usb/Kit/a.wav", "old"); f.t.mkdir("usb/Kit/kick.wav");
+    Status merged = f.ops.copy(f.sd, f.P("Samples/Kit"), f.usb, f.P(""), "", Conflict::overwrite, ctx, &name);
+    CHECK_ERR(merged, Err::partial); CHECK_EQ(f.t.read("usb/Kit/a.wav"), "aaa"); CHECK(f.t.exists("usb/Kit/Sub/b.wav")); CHECK(f.t.exists("usb/Kit/kick.wav/"));
+    CHECK_OK(f.ops.remove(f.usb, f.P("Kit"), true));
     // tree copy, cross volume
     std::uint64_t seen = 0; ctx.progress = [&](std::uint64_t d, std::uint64_t) { seen = d; };
     CHECK_OK(f.ops.copy(f.sd, f.P("Samples/Kit"), f.usb, f.P(""), "KitCopy", Conflict::fail, ctx, &name));

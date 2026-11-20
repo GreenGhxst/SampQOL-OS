@@ -56,6 +56,8 @@ TEST(write_checks_enforce_policy_and_protected_paths) {
     RelPath p;
     parse_rel_path("autorun/autorun.sh", p); CHECK_ERR(PathAuthorizer::check_write(v, p), Err::forbidden);
     parse_rel_path("mpcqol.conf", p); CHECK_ERR(PathAuthorizer::check_write(v, p), Err::forbidden);
+    parse_rel_path("AUTORUN/x", p); CHECK_ERR(PathAuthorizer::check_write(v, p), Err::forbidden);     // exFAT is case-insensitive
+    parse_rel_path("MpcQol.CONF", p); CHECK_ERR(PathAuthorizer::check_write(v, p), Err::forbidden);
     parse_rel_path("autorun-off/x", p); CHECK_OK(PathAuthorizer::check_write(v, p));   // prefix must be a whole component
     parse_rel_path("", p); CHECK_ERR(PathAuthorizer::check_write(v, p), Err::forbidden);
     parse_rel_path("Samples/a.wav", p); CHECK_OK(PathAuthorizer::check_write(v, p));

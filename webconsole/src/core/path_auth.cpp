@@ -23,6 +23,18 @@ bool RelPath::starts_with(const RelPath& prefix) const {
     return true;
 }
 
+bool names_equal_ci(const std::string& a, const std::string& b) {
+    if (a.size() != b.size()) return false;
+    for (std::size_t i = 0; i < a.size(); ++i)
+        if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i])) return false;
+    return true;
+}
+bool RelPath::starts_with_ci(const RelPath& prefix) const {
+    if (prefix.parts.size() > parts.size()) return false;
+    for (std::size_t i = 0; i < prefix.parts.size(); ++i) if (!names_equal_ci(prefix.parts[i], parts[i])) return false;
+    return true;
+}
+
 Status validate_name(const std::string& name) {
     if (name.empty()) return Status::fail(Err::invalid_argument, "empty name");
     if (name.size() > 255) return Status::fail(Err::invalid_argument, "name too long");
@@ -143,7 +155,7 @@ bool PathAuthorizer::is_protected(const VolumeInfo& v, const RelPath& rel) {
     for (const auto& p : v.protected_paths) {
         RelPath pp;
         if (!parse_rel_path(p, pp).ok() || pp.empty()) continue;
-        if (rel.starts_with(pp)) return true;
+        if (rel.starts_with_ci(pp)) return true;   // case-insensitive: exFAT/FAT would open "AUTORUN" as "autorun"
     }
     return false;
 }

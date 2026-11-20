@@ -98,7 +98,7 @@ public:
 private:
     Status copy_tree(int sdir, const std::string& sname, int ddir, const std::string& dname,
                      const OpContext& ctx, std::uint64_t& done, std::uint64_t total, std::vector<std::string>& temps,
-                     const std::string& dabs);
+                     const std::string& dabs, bool overwrite);
     Status copy_regular(int sdir, const std::string& sname, int ddir, const std::string& dname,
                         const OpContext& ctx, std::uint64_t& done, std::uint64_t total, const std::string& dabs,
                         std::vector<std::string>& temps, bool overwrite);
