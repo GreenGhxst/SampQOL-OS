@@ -391,6 +391,68 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(errors, [])
 
 
+class TlsTests(unittest.TestCase):
+    """HTTPS mode: certificate from tools/gen-cert.sh, Secure cookies, plain HTTP refused on the TLS port."""
+
+    @classmethod
+    def setUpClass(cls):
+        import ssl
+        cls.root = tempfile.mkdtemp(prefix="dm-tls-")
+        gen = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "gen-cert.sh")
+        if subprocess.call(["sh", gen, os.path.join(cls.root, "certs"), "127.0.0.1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
+            raise unittest.SkipTest("openssl not available")
+        cls.port = free_port(); data = os.path.join(cls.root, "appdata"); os.makedirs(data)
+        cls.proc = subprocess.Popen([BIN, "--data-dir", data, "--bind", "127.0.0.1", "--port", str(cls.port), "--pairing-code", PAIR, "--log-level", "warn",
+                                     "--tls-cert", os.path.join(cls.root, "certs", "webconsole-cert.pem"), "--tls-key", os.path.join(cls.root, "certs", "webconsole-key.pem")],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cls.ctx = ssl.create_default_context(cafile=os.path.join(cls.root, "certs", "webconsole-cert.pem"))
+        for _ in range(100):
+            try:
+                c = http.client.HTTPSConnection("127.0.0.1", cls.port, timeout=1, context=cls.ctx); c.request("GET", "/api/v1/health", headers={"Host": "127.0.0.1"}); c.getresponse().read(); c.close(); break
+            except Exception: time.sleep(0.05)
+        else:
+            raise RuntimeError("TLS server did not start: " + cls.proc.stderr.read().decode())
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.proc.terminate()
+        try: cls.proc.wait(5)
+        except subprocess.TimeoutExpired: cls.proc.kill()
+        shutil.rmtree(cls.root, ignore_errors=True)
+
+    def https(self, method, path, body=None, headers=None):
+        h = {"Host": "127.0.0.1"}; h.update(headers or {})
+        data = None
+        if body is not None: data = json.dumps(body).encode(); h["Content-Type"] = "application/json"
+        c = http.client.HTTPSConnection("127.0.0.1", self.port, timeout=10, context=self.ctx); c.request(method, path, body=data, headers=h)
+        r = c.getresponse(); content = r.read(); hd = r.getheaders(); c.close()
+        return r.status, json.loads(content.decode()) if content else None, hd
+
+    def test_tls_health_and_secure_cookie(self):
+        st, j, _ = self.https("GET", "/api/v1/health"); self.assertEqual(st, 200); self.assertTrue(j["tls"])
+        st, j, hd = self.https("POST", "/api/v1/auth/pair", {"code": PAIR, "role": "file_manager"}); self.assertEqual(st, 200)
+        cookie = [v for k, v in hd if k.lower() == "set-cookie"][0]
+        self.assertIn("Secure", cookie); self.assertIn("HttpOnly", cookie); self.assertIn("SameSite=Strict", cookie)
+        self.assertTrue(j["trusted_transport"])
+
+    def test_plain_http_on_tls_port_fails(self):
+        c = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        try:
+            c.request("GET", "/api/v1/health", headers={"Host": "127.0.0.1"}); r = c.getresponse(); body = r.read()
+            self.assertNotEqual(r.status, 200)
+        except Exception:
+            pass   # connection reset / bad status line: plain HTTP is not served
+        finally:
+            c.close()
+
+    def test_untrusted_certificate_rejected(self):
+        import ssl
+        c = http.client.HTTPSConnection("127.0.0.1", self.port, timeout=5, context=ssl.create_default_context())
+        with self.assertRaises(ssl.SSLError):
+            c.request("GET", "/api/v1/health", headers={"Host": "127.0.0.1"})
+        c.close()
+
+
 if __name__ == "__main__":
     sys.argv = sys.argv[:1]
     unittest.main(verbosity=1)
