@@ -39,7 +39,7 @@ endif()
 
 # Native controller is platform-independent. It never reads raw device inputs or
 # bypasses the existing server-side filesystem authority.
-add_library(dm_native STATIC src/native/native_model.cpp)
+add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp)
 target_include_directories(dm_native PUBLIC src)
 target_link_libraries(dm_native PUBLIC dm_core)
 
