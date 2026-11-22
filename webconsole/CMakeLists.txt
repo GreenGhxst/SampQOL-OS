@@ -37,6 +37,12 @@ if(DM_WITH_TLS)
   target_link_libraries(dm_server PUBLIC OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
+# Native controller is platform-independent. It never reads raw device inputs or
+# bypasses the existing server-side filesystem authority.
+add_library(dm_native STATIC src/native/native_model.cpp)
+target_include_directories(dm_native PUBLIC src)
+target_link_libraries(dm_native PUBLIC dm_core)
+
 add_executable(diskmode-webconsole src/main.cpp)
 target_link_libraries(diskmode-webconsole PRIVATE dm_server)
 
@@ -47,8 +53,8 @@ if(DM_BUILD_TESTS)
   enable_testing()
   add_executable(core_tests tests/core/test_main.cpp tests/core/test_paths.cpp tests/core/test_volumes.cpp
     tests/core/test_fileops.cpp tests/core/test_journal_jobs.cpp tests/core/test_auth.cpp tests/core/test_format.cpp
-    tests/core/test_misc.cpp)
-  target_link_libraries(core_tests PRIVATE dm_server)
+    tests/core/test_misc.cpp tests/core/test_native.cpp)
+  target_link_libraries(core_tests PRIVATE dm_server dm_native)
   add_test(NAME core_tests COMMAND core_tests)
   find_program(PYTHON3 python3)
   if(PYTHON3)
