@@ -7,13 +7,13 @@ Legend: **I** source implemented / host simulation reported; **P** partial / int
 | ID | Capability | Scope | Code | Device | Evidence / action |
 |---:|---|---|:---:|:---:|---|
 | 001 | Shared C++17 core modules | Approved | I | H | Native / architecture |
-| 002 | Transport-independent service facade | Approved | M | — | Native / architecture |
+| 002 | Transport-independent service facade | Approved | P | — | Native / architecture |
 | 003 | Native 320×240 application entrypoint | Approved | M | H | Native / architecture |
-| 004 | Mock-input desktop UI harness | Approved | M | — | Native / architecture |
+| 004 | Mock-input desktop UI harness | Approved | I | — | Native / architecture |
 | 005 | AArch64 static binary for Web Console | Approved | P | H | Native / architecture |
 | 006 | Physical MPC startup/launcher | Approved | M | H | Native / architecture |
 | 007 | Clean shutdown and journaling replay | Approved | I | H | Native / architecture |
-| 008 | Volume and folder browsing on hardware display | Approved | M | H | Native / architecture |
+| 008 | Volume and folder browsing on hardware display | Approved | P | H | Native / architecture |
 | 009 | File details on 320×240 screen | Approved | M | H | Native / architecture |
 | 010 | Native multi-select | Approved | M | H | Native / architecture |
 | 011 | Native copy/move/rename/new folder | Approved | M | H | Native / architecture |
@@ -134,3 +134,11 @@ Legend: **I** source implemented / host simulation reported; **P** partial / int
 - No VST hosting, duplicate audio DSP, or unsupported USB host / NCM coexistence.
 - SD formatting remains simulation only; stock and SampQOL startup files stay untouched.
 - Legacy-approved features remain tracked but do not silently become release gates.
+
+## P0 implementation update — 2026-11-22
+
+- **Commit `bf5ed15d`**: `src/native/native_model.{h,cpp}` — hardware-independent 320x240 navigation state, selectable folders, multi-select, history/back, scroll, refresh and error handling. No production renderer or device input adapter yet.
+- **`src/native/native_core_service.{h,cpp}`**: read-only native adapter uses existing `VolumeRegistry` and `FileOps`; refreshes mount ownership before each directory load and refuses unavailable/USB-host-owned media. Mutations remain unwired pending shared jobs/confirmation safety.
+- **`tests/core/test_native.cpp`**: five mock-input tests integrated into existing `core_tests`; `CMakeLists.txt` builds `dm_native`.
+- **GitHub Actions run [45080563105](https://github.com/GreenGhxst/SampQOL-OS/actions/runs/45080563105)**: latest combined source built on ubuntu-24.04 and CTest passed. No MPC device used. No independent AArch64 cross-build in this run.
+- Next: bind native UI to renderer/input via verified interfaces; implement shared confirmation/job-backed mutations and corresponding tests; then gated hardware validation.
