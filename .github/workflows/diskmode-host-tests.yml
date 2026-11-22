@@ -1,0 +1,22 @@
+name: DISKMODE host baseline and native tests
+on:
+  push:
+    branches:
+      - codex/diskmode-integrated-core
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libssl-dev python3
+      - name: Configure
+        run: cmake -S webconsole -B webconsole/build -DCMAKE_BUILD_TYPE=Release
+      - name: Compile
+        run: cmake --build webconsole/build -j 2
+      - name: Run all CTest suites
+        run: ctest --test-dir webconsole/build --output-on-failure
