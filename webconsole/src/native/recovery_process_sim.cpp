@@ -3,6 +3,7 @@
 // No /dev/dri, ALSA, systemd, signals to third-party processes or autorun.
 // Real device recovery needs an independently installed and verified service.
 #include "recovery_sim.h"
+#include "recovery_control.h"
 #include <cerrno>
 #include <chrono>
 #include <csignal>
@@ -14,10 +15,18 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <thread>
+#include <cstdlib>
 namespace {
 using namespace dm::native::recovery;
 bool write_byte(int fd,char c) {
-    return ::write(fd,&c,1)==1;
+    ssize_t n;
+    do { n=::write(fd,&c,1); } while(n<0 && errno==EINTR);
+    return n==1;
+}
+bool read_byte(int fd,char& c) {
+    ssize_t n;
+    do { n=::read(fd,&c,1); } while(n<0 && errno==EINTR);
+    return n==1;
 }
 bool wait_child(pid_t child,int& status,unsigned millis) {
     for(unsigned n=0;n<millis/10;++n){
@@ -141,10 +150,83 @@ int simulate(const std::string& mode){
     return 0;
 }
 }
-int main(int argc,char** argv){
-    if(argc!=2){
-        std::cerr<<"usage: diskmode-recovery-sim [normal|sigkill|child-crash|revoke|timeout|restore-fail|stop-fail]\n";
+int simulate_supervisor(const std::string& mode){
+
+    if(mode!="kill"&&mode!="exit"&&mode!="restore-fail"&&mode!="second-instance")return 64;
+    char dir[]="/tmp/diskmode-recovery-test-XXXXXX";
+    if(!::mkdtemp(dir)){std::cerr<<"mkdtemp failed\n";return 1;}
+    const std::string directory=dir;
+    auto cleanup=[&]{
+        ::unlink((directory+"/recovery.journal").c_str());
+        ::unlink((directory+"/recovery.lock").c_str());
+        ::rmdir(directory.c_str());
+    };
+    int ready[2];
+    if(::pipe(ready)!=0){cleanup();return 2;}
+    const pid_t child=::fork();
+    if(child<0){::close(ready[0]);::close(ready[1]);cleanup();return 3;}
+    if(child==0){
+        ::close(ready[0]);std::string why;LeaseToken lease;
+        RecoveryControl supervisor;
+        if(!supervisor.open(directory,why) ||
+           !supervisor.prepare(lease,why) ||
+           !supervisor.activate(lease,why)){
+            char signal='F';write_byte(ready[1],signal);_exit(5);
+        }
+        char signal='R';write_byte(ready[1],signal);
+        if(mode=="exit"){supervisor.revoke(why);supervisor.record_restored(true,why);_exit(0);}
+        if(mode=="second-instance"){
+            // Wait for harness attempt while lock is still held.
+            ::sleep(1);_exit(0);
+        }
+        ::kill(::getpid(),SIGKILL);
+        _exit(6);
+    }
+    ::close(ready[1]);char signal='F';
+    const bool ready_ok=read_byte(ready[0],signal)&&signal=='R';
+    ::close(ready[0]);
+    bool concurrent_denied=true;
+    if(mode=="second-instance" && ready_ok){
+        RecoveryControl contender;std::string err;
+        concurrent_denied=!contender.open(directory,err);
+    }
+    int status=0;
+    while(::waitpid(child,&status,0)<0){if(errno==EINTR)continue;cleanup();return 4;}
+    if(!ready_ok){cleanup();return 5;}
+    if(mode=="kill" || mode=="restore-fail"){
+        if(!WIFSIGNALED(status)||WTERMSIG(status)!=SIGKILL){cleanup();return 6;}
+    }
+    if(mode=="exit" && (!WIFEXITED(status) || WEXITSTATUS(status)!=0)){cleanup();return 7;}
+    RecoveryControl restarted;std::string err;LeaseToken stale;
+    if(!restarted.open(directory,err)){std::cerr<<err<<"\n";cleanup();return 8;}
+    if(!concurrent_denied){restarted.close();cleanup();return 9;}
+    if(mode=="exit"){
+        if(restarted.phase()!=LeasePhase::recovered){restarted.close();cleanup();return 10;}
+    }else{
+        if(restarted.phase()!=LeasePhase::recovery_pending ||
+           restarted.prepare(stale,err) || restarted.authenticate(stale)){
+            restarted.close();cleanup();return 11;
+        }
+        // Simulated restoration outcome, never a real systemd operation.
+        const bool success=mode!="restore-fail";
+        if(restarted.record_restored(success,err)!=success){restarted.close();cleanup();return 12;}
+        if(success && restarted.phase()!=LeasePhase::recovered){restarted.close();cleanup();return 13;}
+        if(!success && restarted.phase()!=LeasePhase::failed){restarted.close();cleanup();return 14;}
+    }
+    restarted.close();cleanup();
+    std::cout<<"PASS "<<mode<<": independent restart checked durable journal; no hardware changes\n";
+    return 0;
+}
+
+int main(int argc,char** argv) {
+    if(argc!=2) {
+        std::cerr<<"usage: diskmode-recovery-sim "
+                    "[normal|sigkill|child-crash|revoke|timeout|restore-fail|stop-fail|"
+                    "supervisor:kill|supervisor:exit|supervisor:restore-fail|supervisor:second-instance]\\n";
         return 64;
     }
-    return simulate(argv[1]);
+    const std::string mode=argv[1];
+    if(mode.rfind("supervisor:",0)==0)
+        return simulate_supervisor(mode.substr(sizeof("supervisor:")-1));
+    return simulate(mode);
 }
