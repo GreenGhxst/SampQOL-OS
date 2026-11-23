@@ -43,7 +43,7 @@ endif()
 # bypasses the existing server-side filesystem authority.
 add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp src/native/hardware_bridge.cpp src/native/device_session.cpp
   src/native/kms_backend.cpp src/native/kms_libdrm.cpp src/native/recovery_sim.cpp
-  src/native/recovery_control.cpp)
+  src/native/recovery_control.cpp src/native/native_renderer.cpp src/native/native_jobs.cpp)
 target_include_directories(dm_native PUBLIC src)
 target_link_libraries(dm_native PUBLIC dm_core)
 if(DM_WITH_DRM)
@@ -82,7 +82,7 @@ if(DM_BUILD_TESTS)
     tests/core/test_fileops.cpp tests/core/test_journal_jobs.cpp tests/core/test_auth.cpp tests/core/test_format.cpp
     tests/core/test_misc.cpp tests/core/test_native.cpp tests/core/test_native_hardware.cpp
     tests/core/test_device_session.cpp tests/core/test_kms_backend.cpp
-    tests/core/test_recovery_sim.cpp tests/core/test_recovery_control.cpp)
+    tests/core/test_recovery_sim.cpp tests/core/test_recovery_control.cpp tests/core/test_native_p0.cpp)
   target_link_libraries(core_tests PRIVATE dm_server dm_native)
   add_test(NAME core_tests COMMAND core_tests)
   add_test(NAME native_desktop_smoke COMMAND diskmode-native-desktop --smoke)
