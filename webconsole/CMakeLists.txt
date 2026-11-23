@@ -42,7 +42,8 @@ endif()
 # Native controller is platform-independent. It never reads raw device inputs or
 # bypasses the existing server-side filesystem authority.
 add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp src/native/hardware_bridge.cpp src/native/device_session.cpp
-  src/native/kms_backend.cpp src/native/kms_libdrm.cpp src/native/recovery_sim.cpp)
+  src/native/kms_backend.cpp src/native/kms_libdrm.cpp src/native/recovery_sim.cpp
+  src/native/recovery_control.cpp)
 target_include_directories(dm_native PUBLIC src)
 target_link_libraries(dm_native PUBLIC dm_core)
 if(DM_WITH_DRM)
@@ -65,6 +66,8 @@ target_link_libraries(diskmode-native-desktop PRIVATE dm_native)
 if(NOT CMAKE_CROSSCOMPILING)
   add_executable(diskmode-recovery-sim src/native/recovery_process_sim.cpp)
   target_link_libraries(diskmode-recovery-sim PRIVATE dm_native)
+  add_executable(diskmode-supervisor-failure-sim src/native/recovery_failure_sim.cpp)
+  target_link_libraries(diskmode-supervisor-failure-sim PRIVATE dm_native)
 endif()
 
 add_executable(diskmode-webconsole src/main.cpp)
@@ -79,7 +82,7 @@ if(DM_BUILD_TESTS)
     tests/core/test_fileops.cpp tests/core/test_journal_jobs.cpp tests/core/test_auth.cpp tests/core/test_format.cpp
     tests/core/test_misc.cpp tests/core/test_native.cpp tests/core/test_native_hardware.cpp
     tests/core/test_device_session.cpp tests/core/test_kms_backend.cpp
-    tests/core/test_recovery_sim.cpp)
+    tests/core/test_recovery_sim.cpp tests/core/test_recovery_control.cpp)
   target_link_libraries(core_tests PRIVATE dm_server dm_native)
   add_test(NAME core_tests COMMAND core_tests)
   add_test(NAME native_desktop_smoke COMMAND diskmode-native-desktop --smoke)
@@ -87,6 +90,12 @@ if(DM_BUILD_TESTS)
     foreach(mode IN ITEMS normal sigkill child-crash revoke timeout restore-fail stop-fail)
       add_test(NAME recovery_process_${mode} COMMAND diskmode-recovery-sim ${mode})
       set_tests_properties(recovery_process_${mode} PROPERTIES TIMEOUT 12)
+    endforeach()
+  endif()
+  if(TARGET diskmode-supervisor-failure-sim)
+    foreach(mode IN ITEMS kill exit restore-fail second-instance)
+      add_test(NAME supervisor_failure_${mode} COMMAND diskmode-supervisor-failure-sim ${mode})
+      set_tests_properties(supervisor_failure_${mode} PROPERTIES TIMEOUT 12)
     endforeach()
   endif()
   find_program(PYTHON3 python3)
