@@ -25,6 +25,7 @@ bool CoreService::list(const std::string& volume, const std::string& relative_di
     RelPath path;
     const Status parsed = parse_rel_path(relative_dir,path);
     if (!parsed.ok()) { error = parsed.message; return false; }
+    if (PathAuthorizer::is_protected(*v,path)) { error = "Protected path"; return false; }
     // Iterate pages from the existing authorized FileOps API, counting only
     // visible entries. Never expose a protected item, including across pages.
     std::size_t source_offset = 0, visible_offset = 0;
