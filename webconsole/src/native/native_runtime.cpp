@@ -7,7 +7,11 @@ bool displayable(const std::string& s){
     // Never approve an action whose identifying path cannot fit the native
     // confirmation text or would be drawn with ambiguous fallback glyphs.
     return s.size()<=35 && std::all_of(s.begin(),s.end(),[](unsigned char ch) {
-        return ch>=32 && ch<=126;
+        // Match the renderer's exact glyph set. Unsupported characters would
+        // render as '?' and make an approval label ambiguous.
+        return (ch>='A'&&ch<='Z') || (ch>='a'&&ch<='z') ||
+               (ch>='0'&&ch<='9') || ch=='/' || ch==':' ||
+               ch=='.' || ch=='-' || ch=='_' || ch==' ';
     });
 }
 const char* op_name(NativeOperation op){
