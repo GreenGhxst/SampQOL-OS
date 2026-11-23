@@ -43,6 +43,9 @@ add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_
 target_include_directories(dm_native PUBLIC src)
 target_link_libraries(dm_native PUBLIC dm_core)
 
+add_executable(diskmode-native-desktop src/native/native_desktop.cpp)
+target_link_libraries(diskmode-native-desktop PRIVATE dm_native)
+
 add_executable(diskmode-webconsole src/main.cpp)
 target_link_libraries(diskmode-webconsole PRIVATE dm_server)
 
@@ -56,6 +59,7 @@ if(DM_BUILD_TESTS)
     tests/core/test_misc.cpp tests/core/test_native.cpp)
   target_link_libraries(core_tests PRIVATE dm_server dm_native)
   add_test(NAME core_tests COMMAND core_tests)
+  add_test(NAME native_desktop_smoke COMMAND diskmode-native-desktop --smoke)
   find_program(PYTHON3 python3)
   if(PYTHON3)
     add_test(NAME http_tests COMMAND ${PYTHON3} -I ${CMAKE_SOURCE_DIR}/tests/http/test_api.py $<TARGET_FILE:diskmode-webconsole> ${CMAKE_SOURCE_DIR}/web)
