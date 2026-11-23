@@ -66,15 +66,15 @@ TEST(native_p0_renderer_produces_xrgb8888_and_highlights_cursor){
  CHECK(files!=moved);
 }
 TEST(native_p0_mock_buttons_are_deterministic_and_isolated){
- Sample s;Controller c(s);MockInputs mock;
- CHECK(!mock.dispatch(MockButton::unknown,c));
+ Sample s;Controller c(s);
+ CHECK(!dispatch_mock(MockButton::unknown,c));
  CHECK(c.screen()==Screen::volumes);
- CHECK(mock.dispatch(MockButton::wheel_press,c));
+ CHECK(dispatch_mock(MockButton::wheel_press,c));
  CHECK(c.screen()==Screen::files);
- CHECK(mock.dispatch(MockButton::wheel_right,c));CHECK_EQ(c.cursor(),1u);
- CHECK(mock.dispatch(MockButton::select,c));CHECK(c.selected(1));
- CHECK(mock.dispatch(MockButton::refresh,c));CHECK(c.selected(1));
- CHECK(mock.dispatch(MockButton::back,c));CHECK(c.screen()==Screen::volumes);
+ CHECK(dispatch_mock(MockButton::wheel_right,c));CHECK_EQ(c.cursor(),1u);
+ CHECK(dispatch_mock(MockButton::select,c));CHECK(c.selected(1));
+ CHECK(dispatch_mock(MockButton::refresh,c));CHECK(c.selected(1));
+ CHECK(dispatch_mock(MockButton::back,c));CHECK(c.screen()==Screen::volumes);
 }
 TEST(native_p0_jobs_require_confirmation_and_safe_paths){
  JobsFixture f;std::string id;
