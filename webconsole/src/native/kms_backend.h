@@ -51,5 +51,5 @@ private:
 // Optional libdrm implementation; available only when -DDM_WITH_DRM=ON.
 // Factory always returns a backend with NoRecoveryGuard in the current
 // product, so no production caller can seize the stock display.
-std::unique_ptr<KmsDriver> make_libdrm_driver(std::string path="/dev/dri/card0");
+std::unique_ptr<KmsDriver> make_libdrm_driver(std::string path="");
 } // namespace dm::native
