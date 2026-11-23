@@ -14,6 +14,7 @@ bool KmsDisplayBackend::acquire(std::string& reason){
         if(!driver_.allocate_xrgb8888(reason))goto failure;
         if(!guard_.verified(reason))goto failure;
         if(!driver_.activate(reason))goto failure;
+        if(!guard_.verified(reason))goto failure;
         active_=true;reason.clear();return true;
     } catch(const std::exception& e) {reason=std::string("DRM acquisition exception: ")+e.what();}
       catch(...) {reason="DRM acquisition exception";}
