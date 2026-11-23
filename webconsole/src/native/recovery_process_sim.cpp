@@ -151,6 +151,7 @@ int simulate(const std::string& mode){
 }
 }
 int simulate_supervisor(const std::string& mode){
+    using namespace dm::native::recovery;
 
     if(mode!="kill"&&mode!="exit"&&mode!="restore-fail"&&mode!="second-instance")return 64;
     char dir[]="/tmp/diskmode-recovery-test-XXXXXX";
@@ -222,7 +223,7 @@ int main(int argc,char** argv) {
     if(argc!=2) {
         std::cerr<<"usage: diskmode-recovery-sim "
                     "[normal|sigkill|child-crash|revoke|timeout|restore-fail|stop-fail|"
-                    "supervisor:kill|supervisor:exit|supervisor:restore-fail|supervisor:second-instance]\\n";
+                    "supervisor:kill|supervisor:exit|supervisor:restore-fail|supervisor:second-instance]\n";
         return 64;
     }
     const std::string mode=argv[1];
