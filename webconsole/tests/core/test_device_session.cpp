@@ -68,3 +68,27 @@ TEST(midi_decoder_ignores_sysex_realtime_and_orphans) {
  d.reset();CHECK(!d.feed(127,ev));
  CHECK(!d.feed(0xc0,ev));CHECK(!d.feed(10,ev));CHECK(!d.feed(1,ev));
 }
+
+TEST(display_session_exception_cleanup) {
+ struct ThrowBackend : ScreenBackend {
+   int releases=0;bool acquisition=true;
+   bool acquire(std::string&) override {
+     if(acquisition)throw std::runtime_error("acquire exception");
+     return true;
+   }
+   bool submit(const std::vector<std::uint8_t>&,std::string&) override {
+     throw std::runtime_error("submit exception");
+   }
+   void release() noexcept override {++releases;}
+ } b;
+ Authority a;a.allowed=true;std::string why;
+ {
+  DisplaySession s(a,b);CHECK(!s.start(why));
+  CHECK(!s.active());CHECK_EQ(b.releases,1);
+  b.acquisition=false;
+  CHECK(s.start(why));CHECK(s.active());
+  CHECK(!s.present(std::vector<std::uint8_t>(320*240*4),why));
+  CHECK(!s.active());CHECK_EQ(b.releases,2);
+ }
+ CHECK_EQ(b.releases,2);
+}
