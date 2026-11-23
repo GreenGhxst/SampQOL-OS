@@ -2,7 +2,10 @@
 #include <exception>
 namespace dm::native {
 bool KmsDisplayBackend::acquire(std::string& reason){
-    if(active_)return true;
+    if(active_){
+        try { if(!guard_.verified(reason)){release();return false;} return true; }
+        catch(...) {reason="Recovery supervisor verification failed";release();return false;}
+    }
     try {
         if(!guard_.verified(reason))return false;
         // A supervisor may have been revoked between steps; recheck before
