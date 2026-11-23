@@ -46,12 +46,8 @@ TEST(hardware_button_map_is_explicit_and_non_destructive) {
  m.route({0x90,12,127},c);CHECK(c.selected(0));
  m.route({0x90,55,127},c);CHECK(c.screen()==Screen::volumes);
 }
-TEST(hardware_display_fails_closed) {
- DisplayGate g;std::string why;
- CHECK(!g.present({},why));
- CHECK(!why.empty());
- CHECK(!g.present(std::vector<std::uint8_t>(320*240*4),why));
- CHECK(why.find("disabled")!=std::string::npos);
+TEST(hardware_probe_is_read_only_and_unverified) {
+ // Fail-closed authorization is covered by DisplaySession and KMS tests.
  auto probe=probe_display_candidates("/not-a-real-diskmode-dri");
  CHECK(!probe.available);
  CHECK(probe.nodes.empty());
