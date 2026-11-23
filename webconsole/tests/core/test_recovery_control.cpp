@@ -47,6 +47,9 @@ TEST(control_recovery_failed_restoration_is_sticky_on_restart) {
     {
         RecoveryControl c;CHECK(c.open(t.path,error));
         CHECK(c.prepare(token,error));CHECK(c.activate(token,error));
+        CHECK(!c.record_restored(true,error));
+        CHECK(!c.authenticate(token)); // invalid completion fails closed
+        CHECK(c.revoke(error));
         CHECK(!c.record_restored(false,error));
         CHECK(c.phase()==LeasePhase::failed);
         CHECK(!c.authenticate(token));
