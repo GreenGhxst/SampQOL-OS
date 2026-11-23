@@ -23,10 +23,4 @@ struct DisplayInfo { bool available=false; std::string reason; std::vector<std::
 // Read-only candidate discovery. Never calls drmSetMaster, opens DRM
 // devices for writing, changes tty, backlight, or stock service state.
 DisplayInfo probe_display_candidates(const std::string& dri_directory="/dev/dri");
-class DisplayGate {
-public:
-    // Hardware presentation intentionally disabled until exclusive display
-    // ownership, stock app suspension, restoration and device tests exist.
-    bool present(const std::vector<std::uint8_t>& xrgb8888, std::string& reason) const;
-};
 } // namespace dm::native
