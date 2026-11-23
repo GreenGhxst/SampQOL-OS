@@ -86,4 +86,19 @@ NativeRenderer::Frame NativeRenderer::render(const Controller& c) const {
     text(f,8,227,"UP DOWN OPEN BACK SELECT REFRESH",0xc8ddda);
     return f;
 }
+NativeRenderer::Frame NativeRenderer::render(const Controller& controller,
+                                            const std::vector<std::string>& review_lines) const {
+    Frame f=render(controller);
+    if(review_lines.empty())return f;
+    // The preview is fully contained within the physical framebuffer.
+    rect(f,3,49,314,156,0x142d30);
+    rect(f,3,49,314,18,0x7b5832);
+    text(f,10,53,"CONFIRM FILE ACTION",0xffffff);
+    int y=74;
+    for(const auto& line:review_lines) {
+        text(f,10,y,line,0xf3eedb,43);
+        y+=28;
+    }
+    return f;
+}
 } // namespace dm::native
