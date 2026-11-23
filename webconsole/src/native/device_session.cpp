@@ -8,11 +8,16 @@
 namespace dm::native {
 bool DisplaySession::start(std::string& reason) {
     if(active_)return true;
-    if(!authority_.granted(reason))return false;
+    try { if(!authority_.granted(reason))return false; }
+    catch(...) {reason="Ownership verification failed";return false;}
     // Backend is responsible for capture+restoration before DRM master.
     try {
         if(!backend_.acquire(reason)) {backend_.release();return false;}
-        active_=true;reason.clear();return true;
+        active_=true;
+        try {
+            if(!authority_.granted(reason)){stop();return false;}
+        } catch(...) {reason="Ownership verification failed after acquisition";stop();return false;}
+        reason.clear();return true;
     } catch(const std::exception& e) {
         reason=std::string("Display acquisition failed: ")+e.what();
         backend_.release();return false;
@@ -22,7 +27,8 @@ bool DisplaySession::start(std::string& reason) {
 }
 bool DisplaySession::present(const std::vector<std::uint8_t>& frame,std::string& reason) {
     if(!active_){reason="Display session inactive";return false;}
-    if(!authority_.granted(reason)){stop();return false;}
+    try { if(!authority_.granted(reason)){stop();return false;} }
+    catch(...) {reason="Ownership verification failed";stop();return false;}
     if(frame.size()!=320u*240u*4u){reason="Expected 320x240 XRGB8888";return false;}
     try {
         if(!backend_.submit(frame,reason)){stop();return false;}
@@ -54,7 +60,8 @@ bool MidiByteDecoder::feed(std::uint8_t byte,SurfaceEvent& out) {
 }
 bool AlsaSurfaceInput::open(OwnershipAuthority& authority,std::string& reason) {
     close();
-    if(!authority.granted(reason))return false;
+    try { if(!authority.granted(reason))return false; }
+    catch(...) {reason="Ownership verification failed";return false;}
 #ifndef DM_WITH_ALSA
     reason="ALSA support disabled in this build";return false;
 #else
@@ -89,13 +96,15 @@ bool AlsaSurfaceInput::open(OwnershipAuthority& authority,std::string& reason) {
     }
     if(!found){reason="No exclusively granted ALSA Control Surface input found";return false;}
     // Detect handoff revocation between enumeration and opening.
-    if(!authority.granted(reason)){close();return false;}
+    try { if(!authority.granted(reason)){close();return false;} }
+    catch(...) {reason="Ownership verification failed";close();return false;}
     authority_=&authority;decoder_.reset();reason.clear();return true;
 #endif
 }
 std::size_t AlsaSurfaceInput::poll(SurfaceMapper& mapper,Controller& controller,std::string& reason){
     if(!handle_){reason="ALSA surface not open";return 0;}
-    if(!authority_ || !authority_->granted(reason)){close();return 0;}
+    try { if(!authority_ || !authority_->granted(reason)){close();return 0;} }
+    catch(...) {reason="Ownership verification failed";close();return 0;}
 #ifndef DM_WITH_ALSA
     reason="ALSA support disabled";close();return 0;
 #else
