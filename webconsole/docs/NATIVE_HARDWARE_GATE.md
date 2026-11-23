@@ -12,7 +12,7 @@ Updated: 2026-11-22. Controlling product scope: `CODEX_MASTER_BUILD_HANDOFF_v1.1
 
 - `native/hardware_bridge.h/.cpp`: an opt-in, independent **MIDI message mapper** translates only recognized channel-1 events to existing native `Controller` actions. The actions for Minus, Plus and Top Left are **provisional application choices**, not claimed as stock MPC functions. Other commands, releases, pads, transport keys and unsolicited values are ignored. It defaults to **disabled**.
 - `probe_display_candidates`: *read-only* discovery of character-device `/dev/dri/cardN` names, no opening as DRM master, mode takeover, SPI/panel driver installation, or device state changes. A node is **not proof** that a compatible panel/connector is available.
-- `DisplayGate::present`: rejects every frame with a clear reason, including a valid 320×240 XRGB8888 frame; no stock display takeover, silent fallback or simulated success.
+- `NoRecoveryGuard` and `RefuseOwnership` block hardware acquisition through the actual KMS/DisplaySession path. The redundant `DisplayGate` denial wrapper was removed; the read-only display probe remains.
 - Unit tests check disabled-by-default behavior, relative encoder direction, wrong MIDI channel, note releases, ignored transport/pad keys, provisional button mappings and display fail-closed behavior. Existing desktop PPM renderer remains usable for development.
 
 ## Still blocked before a physical display / input release
@@ -25,7 +25,7 @@ Updated: 2026-11-22. Controlling product scope: `CODEX_MASTER_BUILD_HANDOFF_v1.1
 
 ## Explicit safety rule
 
-Until all gates have evidence from the **physical MPC Sample**, production builds must keep `SurfaceMapper` disabled and `DisplayGate::present` fail-closed. No native display control injection, kernel module substitution, power controls, formatting or modification of signed SampQOL files is authorized. Cross-compiling the bridge is not proof of actual hardware operation.
+Until all gates have evidence from the **physical MPC Sample**, production builds must keep `SurfaceMapper` disabled and hardware access denied through `NoRecoveryGuard` / `RefuseOwnership` until independent authorization is verified. No native display control injection, kernel module substitution, power controls, formatting or modification of signed SampQOL files is authorized. Cross-compiling the bridge is not proof of actual hardware operation.
 
 References:
 - https://github.com/keremimo/sample-base/blob/f18e620104fe579727c5f13f796016ba08e3a394/src/drivers/display.cpp
