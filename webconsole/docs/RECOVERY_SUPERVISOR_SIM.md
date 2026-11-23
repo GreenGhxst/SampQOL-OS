@@ -5,7 +5,7 @@ Date: 2026-11-22. Branch: `codex/diskmode-integrated-core`.
 ## What exists
 
 - `src/native/recovery_sim.{h,cpp}`: deterministic, injectable `Supervisor` and `MockStock` state machines; recovery state never grants a real `RecoveryGuard` or ALSA/DRM ownership.
-- `src/native/recovery_process_sim.cpp`: a **separate parent process** manages a forked fake DISKMODE child, checks child readiness, monitors termination with `waitpid`, escalates to `SIGKILL` if it does not exit, and restores only a simulated in-memory stock-service state.
+- `src/native/recovery_process_sim.cpp` (single host-only test executable for both child and supervisor failure scenarios): a **separate parent process** manages a forked fake DISKMODE child, checks child readiness, monitors termination with `waitpid`, escalates to `SIGKILL` if it does not exit, and restores only a simulated in-memory stock-service state.
 - `tests/core/test_recovery_sim.cpp`: revoked lease, abnormal exit, failed restoration, failed stop, unknown stock state, and one-time restore.
 - CTest process scenarios: `normal`, `sigkill`, `child-crash` (SIGABRT, core dumps disabled), `revoke` (SIGTERM), `timeout` (bounded escalation), `restore-fail`, `stop-fail`.
 - The simulator binary is **host-only**, not built in cross-compilation. No `systemctl`, `drmSetMaster`, ALSA input, physical service manipulation, signed autorun or firmware operations are performed.
