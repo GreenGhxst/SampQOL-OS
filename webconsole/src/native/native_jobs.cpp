@@ -66,7 +66,7 @@ Status NativeJobs::submit(const NativeRequest& r,std::string& job_id) {
             }
         } completion{state};
         if(job.cancel){state->queue.set_item(job,0,"cancelled");return;}
-        volumes_.refresh();
+        state->volumes.refresh();
         auto sv=state->volumes.get(r.source_volume);
         if(!sv || !sv->mounted || sv->ownership!=Ownership::device) {
             state->queue.set_item(job,0,"failed","Source volume revoked");return;
@@ -95,7 +95,7 @@ Status NativeJobs::submit(const NativeRequest& r,std::string& job_id) {
                 else status=state->files.move(*sv,from,*dv,to,"",Conflict::fail,context);
             }
         }
-        state->queue.set_item(job,0,status.ok()?"done":(job.cancel?"cancelled":"failed"),status.message);
+        state->queue.set_item(job,0,status.ok()?"done":(status.code==Err::partial?"failed":(job.cancel?"cancelled":"failed")),status.message);
     },job_id,{JobItem{r.source_volume+":"+r.source_path,target,"queued",""}});
 }
 } // namespace dm::native
