@@ -43,7 +43,8 @@ endif()
 # bypasses the existing server-side filesystem authority.
 add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp src/native/hardware_bridge.cpp src/native/device_session.cpp
   src/native/kms_backend.cpp src/native/kms_libdrm.cpp src/native/recovery_sim.cpp
-  src/native/recovery_control.cpp src/native/native_renderer.cpp src/native/native_jobs.cpp src/native/native_runtime.cpp)
+  src/native/recovery_control.cpp src/native/native_renderer.cpp src/native/native_jobs.cpp src/native/native_runtime.cpp
+  src/native/startup_preflight.cpp)
 target_include_directories(dm_native PUBLIC src)
 target_link_libraries(dm_native PUBLIC dm_core)
 if(DM_WITH_DRM)
@@ -60,6 +61,10 @@ endif()
 
 add_executable(diskmode-native-desktop src/native/native_desktop.cpp)
 target_link_libraries(diskmode-native-desktop PRIVATE dm_native)
+
+# Host-readable, device-safe diagnostic binary: no hardware activation code.
+add_executable(diskmode-native-diagnostics src/native/startup_diagnostics.cpp)
+target_link_libraries(diskmode-native-diagnostics PRIVATE dm_native)
 
 # Separate host-only supervisor simulator. This binary does not activate DRM,
 # interact with systemd, grant production RecoveryGuard leases or run on device.
@@ -82,10 +87,13 @@ if(DM_BUILD_TESTS)
     tests/core/test_fileops.cpp tests/core/test_journal_jobs.cpp tests/core/test_auth.cpp tests/core/test_format.cpp
     tests/core/test_misc.cpp tests/core/test_native.cpp tests/core/test_native_hardware.cpp
     tests/core/test_device_session.cpp tests/core/test_kms_backend.cpp
-    tests/core/test_recovery_sim.cpp tests/core/test_recovery_control.cpp tests/core/test_native_p0.cpp tests/core/test_native_runtime.cpp)
+    tests/core/test_recovery_sim.cpp tests/core/test_recovery_control.cpp tests/core/test_native_p0.cpp tests/core/test_native_runtime.cpp tests/core/test_startup_preflight.cpp)
   target_link_libraries(core_tests PRIVATE dm_server dm_native)
   add_test(NAME core_tests COMMAND core_tests)
   add_test(NAME native_desktop_smoke COMMAND diskmode-native-desktop --smoke)
+  # Exit code 2 is the EXPECTED safe result until hardware readiness is proven.
+  add_test(NAME startup_diagnostics_fail_closed COMMAND diskmode-native-diagnostics)
+  set_tests_properties(startup_diagnostics_fail_closed PROPERTIES WILL_FAIL TRUE)
   if(TARGET diskmode-recovery-sim)
     foreach(mode IN ITEMS normal sigkill child-crash revoke timeout restore-fail stop-fail)
       add_test(NAME recovery_process_${mode} COMMAND diskmode-recovery-sim ${mode})
