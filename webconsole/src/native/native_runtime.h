@@ -32,7 +32,6 @@ public:
 private:
     Controller controller_;
     NativeRenderer renderer_;
-    MockInputs mock_;
     NativeJobs* jobs_=nullptr; // core owner must outlive this runtime
     DisplaySession* display_=nullptr; // independent verified supervisor
     std::optional<NativeRequest> pending_;
