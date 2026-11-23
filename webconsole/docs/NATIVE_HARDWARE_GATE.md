@@ -31,3 +31,20 @@ References:
 - https://github.com/keremimo/sample-base/blob/f18e620104fe579727c5f13f796016ba08e3a394/src/drivers/display.cpp
 - https://github.com/keremimo/sample-base/blob/f18e620104fe579727c5f13f796016ba08e3a394/src/surface/controls.h
 - https://github.com/keremimo/sample-base/blob/f18e620104fe579727c5f13f796016ba08e3a394/src/drivers/hardware_midi.h
+
+## P0.2 guarded ownership and ALSA implementation (2026-11-22)
+
+- `native/device_session.h/.cpp` introduces `DisplaySession` with an injected `OwnershipAuthority` and `ScreenBackend`. The default `RefuseOwnership` grants no hardware access. An authorized session rechecks its handoff before every frame; loss of grant, presentation error or exception shuts down the backend, with idempotent destructor/stop. A failed acquisition calls backend rollback to undo partial hardware acquisition. The implementation is intentionally a **lifecycle interface, not a stock-safe concrete DRM backend**.
+- `AlsaSurfaceInput` uses **real libasound** when explicitly compiled with `-DDM_WITH_ALSA=ON`. It discovers cards using `snd_card_next` and card identity `Surface` / `Control Surface`, enumerates input-capable raw-MIDI devices and opens **only an input**, nonblocking. It requires a separate, verified `OwnershipAuthority` handoff before and immediately after opening, checks authorization on every poll, and closes/clears parser state upon revocation or read errors. No fixed ALSA card/device numbers, outgoing MIDI, stock process suspension or MIDI patching. The default build leaves ALSA disabled and rejects any attempted open.
+- `MidiByteDecoder` parses bounded channel-voice messages, handles channel running status and ignores SysEx, system common and realtime traffic safely. SurfaceMapper remains disabled unless explicitly enabled by an authorized native launch path.
+- Build and tests: host CI installs `libasound2-dev`, builds with `DM_WITH_ALSA=ON` and runs authorization, simulated display lifecycle, exception rollback, parser and existing regression cases. Cross-compile uses `DM_WITH_ALSA=OFF` until a compatible target sysroot and runtime are verified.
+
+### Unresolved and NOT authorized
+
+1. No concrete `ScreenBackend` calls `drmSetMaster`, changes CRTCs, rebinds panel drivers or stops stock services. A physical panel handoff/restore helper needs a verified exclusive-owner contract, crash recovery supervision and independent target testing before implementation/deployment.
+2. `RefuseOwnership` is the only production-safe authority currently included. There is **no verified stock/SampQOL coexistence or handoff service**, so the ALSA adapter cannot safely open the real Control Surface in released configurations.
+3. ALSA session recovery on actual cable/device disappearance, shared-port contention and DRM rescue after process kill require live MPC hardware; fake-backend tests do not prove those scenarios.
+4. The native desktop UI still uses a demo service and writes a PPM image; no physical display acquisition, user input injection or firmware installation has been enabled.
+5. The `DM_WITH_ALSA=ON` host CI check verifies compilation against libasound on Ubuntu, **not** ABI compatibility with the MPC or functioning MIDI input there.
+
+Do not describe P0.2 as operational physical screen/input integration or hardware release.
