@@ -1,10 +1,13 @@
-name: DISKMODE host baseline and native tests
+name: DISKMODE host native and cross-build checks
 on:
   push:
     branches:
       - codex/diskmode-integrated-core
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: diskmode-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build-test:
     runs-on: ubuntu-24.04
@@ -18,5 +21,31 @@ jobs:
         run: cmake -S webconsole -B webconsole/build -DCMAKE_BUILD_TYPE=Release
       - name: Compile
         run: cmake --build webconsole/build -j 2
-      - name: Run all CTest suites
+      - name: Run CTest (core, HTTP, desktop 320x240 smoke)
         run: ctest --test-dir webconsole/build --output-on-failure
+      - name: Check framebuffer header and dimensions
+        run: |
+          test -f webconsole/build/diskmode-frame.ppm
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("webconsole/build/diskmode-frame.ppm").read_bytes()
+          assert p.startswith(b"P6\n320 240\n255\n"), "Not a 320x240 RGB PPM"
+          assert len(p) == len(b"P6\n320 240\n255\n") + 320 * 240 * 3
+          PY
+  cross-compile-aarch64:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross-toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake g++-aarch64-linux-gnu
+      - name: Configure native and Web Console (no target TLS)
+        run: cmake -S webconsole -B webconsole/build-arm64 -DCMAKE_TOOLCHAIN_FILE=tools/aarch64-linux-gnu.cmake -DDM_WITH_TLS=OFF -DDM_BUILD_TESTS=OFF -DDM_STATIC_LIBSTDCXX=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Cross-build
+        run: cmake --build webconsole/build-arm64 -j 2
+      - name: Verify AArch64 binaries
+        run: |
+          file webconsole/build-arm64/diskmode-native-desktop
+          file webconsole/build-arm64/diskmode-webconsole
+          file webconsole/build-arm64/diskmode-native-desktop | grep -q 'ARM aarch64'
