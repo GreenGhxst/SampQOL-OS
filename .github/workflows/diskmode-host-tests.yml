@@ -6,7 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
 concurrency:
-  group: diskmode-p02-${{ github.workflow }}-${{ github.ref }}
+  group: diskmode-p04-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build-test:
