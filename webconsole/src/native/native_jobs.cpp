@@ -95,7 +95,7 @@ Status NativeJobs::submit(const NativeRequest& r,std::string& job_id) {
                 else status=state->files.move(*sv,from,*dv,to,"",Conflict::fail,context);
             }
         }
-        state->queue.set_item(job,0,status.ok()?"done":(status.code==Err::partial?"failed":(job.cancel?"cancelled":"failed")),status.message);
+        state->queue.set_item(job,0,status.ok()?"done":(status.code==Err::partial?"partial":(job.cancel?"cancelled":"failed")),status.message);
     },job_id,{JobItem{r.source_volume+":"+r.source_path,target,"queued",""}});
 }
 } // namespace dm::native
