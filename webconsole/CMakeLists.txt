@@ -10,6 +10,7 @@ endif()
 
 option(DM_WITH_TLS "Enable HTTPS through OpenSSL" ON)
 option(DM_BUILD_TESTS "Build the test binaries" ON)
+option(DM_WITH_ALSA "Enable guarded ALSA raw-MIDI control-surface input" OFF)
 option(DM_STATIC_LIBSTDCXX "Link libstdc++/libgcc statically (useful for the device)" OFF)
 option(DM_FULLY_STATIC "Link the whole binary statically (no glibc version dependency on the device)" OFF)
 
@@ -39,9 +40,14 @@ endif()
 
 # Native controller is platform-independent. It never reads raw device inputs or
 # bypasses the existing server-side filesystem authority.
-add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp src/native/hardware_bridge.cpp)
+add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp src/native/hardware_bridge.cpp src/native/device_session.cpp)
 target_include_directories(dm_native PUBLIC src)
 target_link_libraries(dm_native PUBLIC dm_core)
+if(DM_WITH_ALSA)
+  find_package(ALSA REQUIRED)
+  target_compile_definitions(dm_native PUBLIC DM_WITH_ALSA)
+  target_link_libraries(dm_native PUBLIC ALSA::ALSA)
+endif()
 
 add_executable(diskmode-native-desktop src/native/native_desktop.cpp)
 target_link_libraries(diskmode-native-desktop PRIVATE dm_native)
@@ -56,7 +62,8 @@ if(DM_BUILD_TESTS)
   enable_testing()
   add_executable(core_tests tests/core/test_main.cpp tests/core/test_paths.cpp tests/core/test_volumes.cpp
     tests/core/test_fileops.cpp tests/core/test_journal_jobs.cpp tests/core/test_auth.cpp tests/core/test_format.cpp
-    tests/core/test_misc.cpp tests/core/test_native.cpp tests/core/test_native_hardware.cpp)
+    tests/core/test_misc.cpp tests/core/test_native.cpp tests/core/test_native_hardware.cpp
+    tests/core/test_device_session.cpp)
   target_link_libraries(core_tests PRIVATE dm_server dm_native)
   add_test(NAME core_tests COMMAND core_tests)
   add_test(NAME native_desktop_smoke COMMAND diskmode-native-desktop --smoke)
