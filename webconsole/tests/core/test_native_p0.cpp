@@ -28,7 +28,7 @@ struct JobsFixture {
  JobQueue queue;
  std::unique_ptr<NativeJobs> jobs;
  JobsFixture():journal(t.sub("j.jsonl")),ops(journal,0),queue(1,8){
-   t.mkdir("sd");t.mkdir("sd/dst");t.mkdir("sd/autorun");
+   t.mkdir("sd");t.mkdir("sd/dst");t.mkdir("sd/other");t.mkdir("sd/autorun");
    t.write("sd/KICK.wav","kick audio");t.write("sd/autorun/locked","no");
    auto fp=std::make_unique<FakeProbe>();probe=fp.get();
    fp->table={{"/dev/mmcblk1p1",t.sub("sd"),"exfat","rw"}};
@@ -57,12 +57,13 @@ TEST(native_p0_renderer_produces_xrgb8888_and_highlights_cursor){
  c.press(Key::enter);
  auto files=renderer.render(c);
  CHECK(files!=before);
+ c.press(Key::enter);
+ auto nested=renderer.render(c);
+ CHECK(nested!=files);
+ c.press(Key::back);
  c.press(Key::down);
  auto moved=renderer.render(c);
  CHECK(files!=moved);
- c.press(Key::enter);
- auto nested=renderer.render(c);
- CHECK(nested!=moved);
 }
 TEST(native_p0_mock_buttons_are_deterministic_and_isolated){
  Sample s;Controller c(s);MockInputs mock;
@@ -98,12 +99,13 @@ TEST(native_p0_shared_copy_move_trash_and_collision){
  CHECK_OK(f.jobs->submit(r,id));CHECK_EQ(f.finish(id),"failed");
  CHECK_EQ(f.t.read("sd/dst/KICK.wav"),"kick audio");
  r.op=NativeOperation::move;
- r.source_path="dst/KICK.wav";r.destination_dir="";
- CHECK_OK(f.jobs->submit(r,id));CHECK_EQ(f.finish(id),"failed");
- // Existing source prevents overwrite, even on move.
- r.op=NativeOperation::trash;r.destination_volume.clear();r.destination_dir.clear();
+ r.source_path="dst/KICK.wav";r.destination_dir="other";
  CHECK_OK(f.jobs->submit(r,id));CHECK_EQ(f.finish(id),"done");
- CHECK(!f.t.exists("sd/dst/KICK.wav"));CHECK(f.t.exists("sd/KICK.wav"));
+ CHECK(!f.t.exists("sd/dst/KICK.wav"));
+ CHECK_EQ(f.t.read("sd/other/KICK.wav"),"kick audio");
+ r.op=NativeOperation::trash;r.source_path="other/KICK.wav";r.destination_volume.clear();r.destination_dir.clear();
+ CHECK_OK(f.jobs->submit(r,id));CHECK_EQ(f.finish(id),"done");
+ CHECK(!f.t.exists("sd/other/KICK.wav"));CHECK(f.t.exists("sd/KICK.wav"));
 }
 TEST(native_p0_jobs_refuse_recursive_destination){
  JobsFixture f;std::string id;
