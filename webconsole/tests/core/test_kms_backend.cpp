@@ -98,3 +98,12 @@ TEST(kms_default_build_remains_off) {
     CHECK(bool(driver));
 #endif
 }
+
+TEST(kms_repeated_start_rechecks_supervisor_authorization) {
+    Guard g;g.allow=true;FakeKms d;KmsDisplayBackend b(g,d);std::string why;
+    CHECK(b.acquire(why));CHECK_EQ(d.opens,1);
+    g.allow=false;
+    CHECK(!b.acquire(why));
+    CHECK(!b.acquired());CHECK_EQ(d.restores,1);
+    CHECK_EQ(d.opens,1);
+}
