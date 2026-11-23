@@ -46,9 +46,4 @@ DisplayInfo probe_display_candidates(const std::string& directory) {
         "Candidate DRM nodes found; panel mode and ownership not verified";
     return out;
 }
-bool DisplayGate::present(const std::vector<std::uint8_t>& frame,std::string& reason) const {
-    if(frame.size()!=320u*240u*4u){reason="Expected 320x240 XRGB8888 frame";return false;}
-    reason="Hardware display disabled: exclusive DRM ownership and restoration not verified";
-    return false;
-}
 } // namespace dm::native
