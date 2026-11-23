@@ -160,6 +160,8 @@ bool RecoveryControl::open(const std::string& directory,std::string& error){
     if(st.st_size>1024*1024){
         error="Recovery journal exceeds review limit; refusing lease";close();return false;
     }
+    // Persist directory entries before any lease transition is authorized.
+    if(::fsync(dir_fd_)!=0){error=os_error("Sync recovery state directory");close();return false;}
     if(::lseek(journal_fd_,0,SEEK_SET)<0){error=os_error("Seek recovery journal");close();return false;}
     std::string content;
     char buffer[4096];
@@ -241,9 +243,10 @@ bool RecoveryControl::revoke(std::string& error){
 }
 bool RecoveryControl::record_restored(bool success,std::string& error){
     current_={};
+    // A completion may only follow revocation/restart or a failed recovery.
+    // Never permit an ACTIVE lease to be called "restored" directly.
     if(phase_!=LeasePhase::recovery_pending && phase_!=LeasePhase::revoked &&
-       phase_!=LeasePhase::failed && phase_!=LeasePhase::active &&
-       phase_!=LeasePhase::prepared){
+       phase_!=LeasePhase::failed){
         error="No recovery outstanding";return false;
     }
     if(!append(success?LeasePhase::recovered:LeasePhase::failed,"",error))return false;
