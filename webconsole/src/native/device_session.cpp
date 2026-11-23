@@ -1,5 +1,6 @@
 #include "device_session.h"
 #include <cerrno>
+#include <exception>
 #include <string>
 #ifdef DM_WITH_ALSA
 #include <alsa/asoundlib.h>
@@ -9,15 +10,28 @@ bool DisplaySession::start(std::string& reason) {
     if(active_)return true;
     if(!authority_.granted(reason))return false;
     // Backend is responsible for capture+restoration before DRM master.
-    if(!backend_.acquire(reason)) {backend_.release();return false;}
-    active_=true;reason.clear();return true;
+    try {
+        if(!backend_.acquire(reason)) {backend_.release();return false;}
+        active_=true;reason.clear();return true;
+    } catch(const std::exception& e) {
+        reason=std::string("Display acquisition failed: ")+e.what();
+        backend_.release();return false;
+    } catch(...) {
+        reason="Display acquisition failed";backend_.release();return false;
+    }
 }
 bool DisplaySession::present(const std::vector<std::uint8_t>& frame,std::string& reason) {
     if(!active_){reason="Display session inactive";return false;}
     if(!authority_.granted(reason)){stop();return false;}
     if(frame.size()!=320u*240u*4u){reason="Expected 320x240 XRGB8888";return false;}
-    if(!backend_.submit(frame,reason)){stop();return false;}
-    return true;
+    try {
+        if(!backend_.submit(frame,reason)){stop();return false;}
+        return true;
+    } catch(const std::exception& e) {
+        reason=std::string("Display presentation failed: ")+e.what();stop();return false;
+    } catch(...) {
+        reason="Display presentation failed";stop();return false;
+    }
 }
 void DisplaySession::stop() noexcept {
     if(active_){active_=false;backend_.release();}
