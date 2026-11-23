@@ -10,5 +10,6 @@ public:
     // Byte order B,G,R,0xFF: little-endian XRGB8888 for the guarded KMS interface.
     using Frame=std::vector<std::uint8_t>;
     Frame render(const Controller& controller) const;
+    Frame render(const Controller& controller,const std::vector<std::string>& review_lines) const;
 };
 } // namespace dm::native
