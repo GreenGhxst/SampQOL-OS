@@ -4,14 +4,14 @@ namespace dm {
 
 json Job::to_json() const {
     json items_j = json::array();
-    std::size_t ok = 0, failed = 0, cancelled = 0;
+    std::size_t ok = 0, failed = 0, cancelled = 0, partial = 0;
     for (const auto& i : items) {
         items_j.push_back(i.to_json());
-        if (i.state == "done") ++ok; else if (i.state == "failed") ++failed; else if (i.state == "cancelled") ++cancelled;
+        if (i.state == "done") ++ok; else if (i.state == "failed") ++failed; else if (i.state == "cancelled") ++cancelled; else if (i.state == "partial") ++partial;
     }
     return json{{"id", id}, {"type", type}, {"state", state}, {"error", error}, {"created", created},
                 {"started", started}, {"finished", finished}, {"done", done.load()}, {"total", total.load()},
-                {"items", items_j}, {"summary", {{"done", ok}, {"failed", failed}, {"cancelled", cancelled}, {"total", items.size()}}},
+                {"items", items_j}, {"summary", {{"done", ok}, {"failed", failed}, {"cancelled", cancelled}, {"partial", partial}, {"total", items.size()}}},
                 {"detail", detail}};
 }
 
@@ -71,9 +71,10 @@ void JobQueue::worker() {
         catch (const std::exception& e) { std::lock_guard<std::mutex> lk(mu_); p.job->state = "failed"; p.job->error = e.what(); }
         std::lock_guard<std::mutex> lk(mu_);
         if (p.job->state == "running") {
-            std::size_t failed = 0, cancelled = 0;
-            for (auto& i : p.job->items) { if (i.state == "failed") ++failed; else if (i.state == "cancelled") ++cancelled; }
-            if (p.job->cancel) p.job->state = cancelled || failed ? (failed ? "partial" : "cancelled") : "cancelled";
+            std::size_t failed = 0, cancelled = 0, partial = 0;
+            for (auto& i : p.job->items) { if (i.state == "failed") ++failed; else if (i.state == "cancelled") ++cancelled; else if (i.state == "partial") ++partial; }
+            if (p.job->cancel) p.job->state = cancelled || failed || partial ? (failed || partial ? "partial" : "cancelled") : "cancelled";
+            else if (partial) p.job->state = "partial";
             else if (failed && failed == p.job->items.size()) p.job->state = "failed";
             else if (failed) p.job->state = "partial";
             else p.job->state = "done";
