@@ -505,7 +505,7 @@ Status FileOps::list_trash(const VolumeInfo& v, std::vector<TrashItem>& out) {
     ScopedFd trash;
     st = open_trash(v, trash, false);
     if (!st.ok()) return st.code == Err::unsupported ? Status::good() : st;
-    json idx; read_trash_index(trash.get(), idx);
+    json idx; st = read_trash_index(trash.get(), idx); if (!st.ok()) return st;
     for (const auto& e : idx) {
         TrashItem t; t.id = e.value("id", ""); t.name = e.value("name", ""); t.original_path = e.value("original_path", "");
         t.size = e.value("size", 0ull); t.deleted_at = e.value("deleted_at", "");
@@ -521,7 +521,7 @@ Status FileOps::restore(const VolumeInfo& v, const std::string& trash_id, std::s
     std::lock_guard<std::mutex> lk(g_trash_mutex);
     ScopedFd trash;
     Status st = open_trash(v, trash, false); if (!st.ok()) return st;
-    json idx; read_trash_index(trash.get(), idx);
+    json idx; st = read_trash_index(trash.get(), idx); if (!st.ok()) return st;
     json entry; std::size_t pos = 0;
     for (; pos < idx.size(); ++pos) if (idx[pos].value("id", "") == trash_id) { entry = idx[pos]; break; }
     if (entry.is_null()) return Status::fail(Err::not_found, "trash item not found");
@@ -541,9 +541,14 @@ Status FileOps::restore(const VolumeInfo& v, const std::string& trash_id, std::s
     slot.reset();
     ::unlinkat(trash.get(), trash_id.c_str(), AT_REMOVEDIR);
     idx.erase(pos);
-    write_trash_index(trash.get(), idx);
-    journal_.finish(jid, "done");
+    st = write_trash_index(trash.get(), idx);
     if (restored_path) *restored_path = orig.str();
+    if (!st.ok()) {
+        const std::string message="File restored, but trash index update failed: "+st.message;
+        journal_.finish(jid,"partial",message);
+        return Status::fail(Err::partial,message);
+    }
+    journal_.finish(jid, "done");
     return Status::good();
 }
 
@@ -554,13 +559,24 @@ Status FileOps::purge_trash_item(const VolumeInfo& v, const std::string& trash_i
     std::lock_guard<std::mutex> lk(g_trash_mutex);
     ScopedFd trash;
     st = open_trash(v, trash, false); if (!st.ok()) return st;
+    json idx;
+    st = read_trash_index(trash.get(), idx);
+    if (!st.ok()) return st;
     std::string jid = journal_.begin("purge", v.id + ":trash/" + trash_id, "");
     st = remove_tree(trash.get(), trash_id);
-    json idx; read_trash_index(trash.get(), idx);
+    if (!st.ok()) {
+        journal_.finish(jid,"failed",st.message);
+        return st;
+    }
     for (std::size_t i = 0; i < idx.size(); ++i) if (idx[i].value("id", "") == trash_id) { idx.erase(i); break; }
-    write_trash_index(trash.get(), idx);
-    journal_.finish(jid, st.ok() ? "done" : "failed", st.message);
-    return st;
+    st = write_trash_index(trash.get(), idx);
+    if (!st.ok()) {
+        const std::string message="Trash item purged, but index update failed: "+st.message;
+        journal_.finish(jid,"partial",message);
+        return Status::fail(Err::partial,message);
+    }
+    journal_.finish(jid,"done");
+    return Status::good();
 }
 
 // ---------------------------------------------------------------- reads
