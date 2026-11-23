@@ -20,6 +20,7 @@ public:
     bool open_and_find_panel(std::string& why) override {
         // Never invoke without KmsDisplayBackend's external RecoveryGuard.
         if(fd_>=0){why="Already opened";return false;}
+        if(path_.empty()){why="No explicitly verified DRM card path";return false;}
         fd_=::open(path_.c_str(),O_RDWR|O_CLOEXEC|O_NOFOLLOW);
         if(fd_<0){why=std::string("Unable to open DRM device: ")+std::strerror(errno);return false;}
         drmModeRes* res=drmModeGetResources(fd_);
@@ -36,7 +37,7 @@ public:
                     for(int e=0;e<c->count_encoders && !found;++e){
                         drmModeEncoder* encoder=drmModeGetEncoder(fd_,c->encoders[e]);
                         if(!encoder)continue;
-                        for(int k=0;k<res->count_crtcs;++k){
+                        for(int k=0;k<res->count_crtcs && k<32;++k){
                             if(encoder->possible_crtcs & (1u<<k)){
                                 crtc_=res->crtcs[k]; connector_=c->connector_id;
                                 mode_=mode;found=true;break;
@@ -56,6 +57,26 @@ public:
         if(fd_<0 || crtc_==0){why="DRM card/CRTC unavailable";return false;}
         previous_=drmModeGetCrtc(fd_,crtc_);
         if(!previous_){why="Cannot capture previous DRM CRTC state";return false;}
+        // The old CRTC snapshot does not include its connector list.
+        drmModeRes* res=drmModeGetResources(fd_);
+        if(!res){why="Cannot capture previous connector topology";return false;}
+        for(int i=0;i<res->count_connectors;++i){
+            drmModeConnector* c=drmModeGetConnector(fd_,res->connectors[i]);
+            if(!c)continue;
+            if(c->encoder_id){
+                drmModeEncoder* e=drmModeGetEncoder(fd_,c->encoder_id);
+                if(e){
+                    if(e->crtc_id==crtc_)previous_connectors_.push_back(c->connector_id);
+                    drmModeFreeEncoder(e);
+                }
+            }
+            drmModeFreeConnector(c);
+        }
+        drmModeFreeResources(res);
+        if(previous_->mode_valid && previous_connectors_.empty()){
+            why="Previous display connector topology unknown; fail closed";
+            return false;
+        }
         return true;
     }
     bool acquire_master(std::string& why) override {
@@ -115,7 +136,8 @@ public:
         if(fd_>=0 && master_ && changed_ && previous_){
             if(previous_->mode_valid)
                 drmModeSetCrtc(fd_,previous_->crtc_id,previous_->buffer_id,
-                               previous_->x,previous_->y,&connector_,1,&previous_->mode);
+                               previous_->x,previous_->y,previous_connectors_.data(),
+                               static_cast<int>(previous_connectors_.size()),&previous_->mode);
             else drmModeSetCrtc(fd_,crtc_,0,0,0,nullptr,0,nullptr);
         }
         changed_=false;
@@ -131,7 +153,7 @@ public:
         master_=false;
         if(previous_){drmModeFreeCrtc(previous_);previous_=nullptr;}
         if(fd_>=0){::close(fd_);fd_=-1;}
-        crtc_=0;connector_=0;
+        crtc_=0;connector_=0;previous_connectors_.clear();
     }
 private:
     std::string path_;
@@ -140,6 +162,7 @@ private:
     std::uint64_t size_=0;
     drmModeModeInfo mode_{};
     drmModeCrtc* previous_=nullptr;
+    std::vector<uint32_t> previous_connectors_;
     void* pixels_=nullptr;
     bool master_=false,changed_=false;
 };
