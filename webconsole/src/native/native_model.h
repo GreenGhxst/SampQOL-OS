@@ -1,6 +1,5 @@
 #pragma once
-// Hardware-agnostic 320x240 DISKMODE navigation state. No stock input hooks.
-// Service implementations MUST enforce volume/path policy before returning data.
+// Hardware-neutral navigation model. Service owns all filesystem authority.
 #include <cstddef>
 #include <set>
 #include <string>
@@ -10,9 +9,11 @@ struct Item { std::string name; bool directory = false; };
 struct Volume { std::string id, label; bool available = false, writable = false; };
 struct Service {
     virtual ~Service() = default;
-    virtual std::vector<Volume> volumes() = 0;
+    // Returns a bounded, sorted page. has_more signals further entries.
     virtual bool list(const std::string& volume, const std::string& relative_dir,
-                      std::vector<Item>& out, std::string& error) = 0;
+                      std::size_t offset, std::size_t limit, std::vector<Item>& out,
+                      bool& has_more, std::string& error) = 0;
+    virtual std::vector<Volume> volumes() = 0;
 };
 enum class Screen { volumes, files, error };
 enum class Key { up, down, enter, back, select, refresh };
@@ -28,13 +29,18 @@ public:
     const std::vector<Item>& entries() const { return entries_; }
     std::size_t cursor() const { return cursor_; }
     std::size_t top() const { return top_; }
-    bool selected(std::size_t index) const { return selection_.count(index) != 0; }
+    bool selected(std::size_t index) const {
+        return index < entries_.size() && selection_.count(entries_[index].name) != 0;
+    }
+    std::size_t selected_count() const { return selection_.size(); }
+    bool has_more() const { return has_more_; }
     void set_page_size(std::size_t count);
-    // Fixed 320x240 content area is rendered by a separate hardware adapter.
     static constexpr int width = 320, height = 240;
 private:
-    void reload_volumes();
-    void reload_files();
+    static constexpr std::size_t page_batch = 128;
+    void reload_volumes(bool preserve = false);
+    void reload_files(bool preserve = false);
+    bool fetch_page(std::size_t offset);
     void clear_selection();
     void adjust_scroll();
     Service& service_;
@@ -43,6 +49,8 @@ private:
     std::vector<Item> entries_;
     std::string volume_, dir_, error_;
     std::size_t cursor_ = 0, top_ = 0, page_size_ = 7;
-    std::set<std::size_t> selection_;
+    bool has_more_ = false;
+    // Name identity is stable within a directory across pagination/sorting.
+    std::set<std::string> selection_;
 };
 } // namespace dm::native
