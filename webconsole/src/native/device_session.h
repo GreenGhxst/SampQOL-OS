@@ -40,7 +40,17 @@ private:
     ScreenBackend& backend_;
     bool active_=false;
 };
-// An incremental parser accepts only bounded, 3-byte channel messages.\nclass MidiByteDecoder {\npublic:\n    bool feed(std::uint8_t byte,SurfaceEvent& event);\n    void reset(){status_=data0_=0;count_=0;sysex_=false;}\nprivate:\n    std::uint8_t status_=0,data0_=0;\n    int count_=0;\n    bool sysex_=false;\n};\n// An ALSA raw-MIDI input reader; available only with optional libasound.
+// An incremental parser accepts only bounded, 3-byte channel messages.
+class MidiByteDecoder {
+public:
+    bool feed(std::uint8_t byte,SurfaceEvent& event);
+    void reset(){status_=data0_=0;count_=0;sysex_=false;}
+private:
+    std::uint8_t status_=0,data0_=0;
+    int count_=0;
+    bool sysex_=false;
+};
+// An ALSA raw-MIDI input reader; available only with optional libasound.
 // Defaults to no access and never opens an output port.
 class AlsaSurfaceInput {
 public:
