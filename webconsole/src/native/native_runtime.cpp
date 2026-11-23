@@ -32,7 +32,7 @@ NativeRenderer::Frame NativeRuntime::frame() const {
     });
 }
 bool NativeRuntime::mock_press(MockButton key) {
-    if(!pending_)return mock_.dispatch(key,controller_);
+    if(!pending_)return dispatch_mock(key,controller_);
     if(key==MockButton::back){
         pending_.reset();
         last_job_id_.clear();
