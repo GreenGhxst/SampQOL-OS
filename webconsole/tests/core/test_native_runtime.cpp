@@ -65,6 +65,15 @@ struct Fixture {
    }
    CHECK(false);
  }
+ Status approve(NativeOperation op,const std::string& volume,
+                const std::string& directory,std::string& id) {
+   id.clear();
+   auto st=runtime->prepare_selected(op,volume,directory);
+   if(!st.ok())return st;
+   runtime->mock_press(MockButton::wheel_press);
+   id=runtime->last_job_id();
+   return runtime->last_result();
+ }
  std::string finish(const std::string& id){
    for(int i=0;i<500;++i){
      auto j=queue.get(id);
@@ -89,12 +98,19 @@ TEST(native_runtime_renders_and_mock_navigates_actual_fileops){
 }
 TEST(native_runtime_selected_copy_move_and_trash_pipeline){
  Fixture f;f.open_drums();f.select_name("Kick.wav");std::string id;
- CHECK_ERR(f.runtime->submit_selected(NativeOperation::copy,"sdcard","Export",false,id),Err::forbidden);
+ CHECK_OK(f.runtime->prepare_selected(NativeOperation::copy,"sdcard","Export"));
+ CHECK(f.runtime->awaiting_confirmation());
+ const auto preview=f.runtime->frame();
+ CHECK(!f.runtime->mock_press(MockButton::wheel_right));
+ CHECK_EQ(f.runtime->frame(),preview);
+ CHECK(f.runtime->mock_press(MockButton::back));
+ CHECK(!f.runtime->awaiting_confirmation());
  CHECK(id.empty());
- CHECK_OK(f.runtime->submit_selected(NativeOperation::copy,"sdcard","Export",true,id));
+ CHECK(!f.t.exists("sd/Export/Kick.wav"));
+ CHECK_OK(f.approve(NativeOperation::copy,"sdcard","Export",id));
  CHECK_EQ(f.finish(id),"done");
  CHECK_EQ(f.t.read("sd/Export/Kick.wav"),"kick");
- CHECK_OK(f.runtime->submit_selected(NativeOperation::copy,"sdcard","Export",true,id));
+ CHECK_OK(f.approve(NativeOperation::copy,"sdcard","Export",id));
  CHECK_EQ(f.finish(id),"failed"); // collision never overwrites
  f.runtime->mock_press(MockButton::back);
  f.runtime->refresh();
@@ -109,7 +125,7 @@ TEST(native_runtime_selected_copy_move_and_trash_pipeline){
  }
  CHECK_EQ(c.directory(),"Export");
  f.select_name("Kick.wav");
- CHECK_OK(f.runtime->submit_selected(NativeOperation::move,"sdcard","Other",true,id));
+ CHECK_OK(f.approve(NativeOperation::move,"sdcard","Other",id));
  CHECK_EQ(f.finish(id),"done");
  CHECK(!f.t.exists("sd/Export/Kick.wav"));
  CHECK_EQ(f.t.read("sd/Other/Kick.wav"),"kick");
@@ -122,7 +138,7 @@ TEST(native_runtime_selected_copy_move_and_trash_pipeline){
    f.runtime->mock_press(MockButton::wheel_press);break;
  }
  CHECK_EQ(c.directory(),"Other");f.select_name("Kick.wav");
- CHECK_OK(f.runtime->submit_selected(NativeOperation::trash,"","",true,id));
+ CHECK_OK(f.approve(NativeOperation::trash,"","",id));
  CHECK_EQ(f.finish(id),"done");
  CHECK(!f.t.exists("sd/Other/Kick.wav"));
  f.runtime->refresh();
@@ -130,12 +146,12 @@ TEST(native_runtime_selected_copy_move_and_trash_pipeline){
 }
 TEST(native_runtime_fail_closed_on_multi_select_and_usb_revoke){
  Fixture f;std::string id;f.open_drums();
- CHECK_ERR(f.runtime->submit_selected(NativeOperation::copy,"sdcard","Export",true,id),Err::invalid_argument);
+ CHECK_ERR(f.approve(NativeOperation::copy,"sdcard","Export",id),Err::invalid_argument);
  f.select_name("Kick.wav");f.select_name("Snare.wav");
- CHECK_ERR(f.runtime->submit_selected(NativeOperation::copy,"sdcard","Export",true,id),Err::invalid_argument);
+ CHECK_ERR(f.approve(NativeOperation::copy,"sdcard","Export",id),Err::invalid_argument);
  f.runtime->mock_press(MockButton::select); // unselect Snare
  f.probe->exported={"mmcblk1"};
- CHECK_ERR(f.runtime->submit_selected(NativeOperation::copy,"sdcard","Export",true,id),Err::unavailable);
+ CHECK_ERR(f.approve(NativeOperation::copy,"sdcard","Export",id),Err::unavailable);
  CHECK(!f.t.exists("sd/Export/Kick.wav"));
 }
 TEST(native_runtime_refuses_physical_display_without_handoff){
