@@ -92,3 +92,23 @@ TEST(display_session_exception_cleanup) {
  }
  CHECK_EQ(b.releases,2);
 }
+
+TEST(display_session_ownership_exception_and_post_acquire_revoke) {
+ struct FlakyAuthority : OwnershipAuthority {
+  int calls=0;bool throws=false;
+  bool granted(std::string&) override {
+   ++calls;if(throws)throw std::runtime_error("authority disappeared");
+   return calls==1;
+  }
+ } a;
+ Backend b;std::string why;
+ {DisplaySession s(a,b);
+  CHECK(!s.start(why));
+  CHECK(!s.active());CHECK_EQ(b.released,1);
+ }
+ a.calls=0;a.throws=true;
+ {DisplaySession s(a,b);
+  CHECK(!s.start(why));
+  CHECK(!s.active());CHECK_EQ(b.acquired,1);
+ }
+}
