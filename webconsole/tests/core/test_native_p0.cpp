@@ -112,3 +112,39 @@ TEST(native_p0_jobs_refuse_recursive_destination){
  NativeRequest r{NativeOperation::copy,"sdcard","dst","sdcard","dst/child",true};
  CHECK_ERR(f.jobs->submit(r,id),Err::invalid_argument);
 }
+
+TEST(native_p0_trash_index_failure_is_partial_and_journaled){
+ JobsFixture f;std::string id;
+ f.t.mkdir("sd/.diskmode");
+ f.t.mkdir("sd/.diskmode/trash");
+ // A directory at the index path makes the read fail deterministically.
+ f.t.mkdir("sd/.diskmode/trash/index.json");
+ NativeRequest r{NativeOperation::trash,"sdcard","KICK.wav","","",true};
+ CHECK_OK(f.jobs->submit(r,id));
+ CHECK_EQ(f.finish(id),"partial");
+ CHECK(!f.t.exists("sd/KICK.wav"));
+ auto job=f.queue.get(id);
+ CHECK_EQ(job["state"],"partial");
+ CHECK_EQ(job["summary"]["partial"],1);
+ CHECK(job["items"][0]["error"].get<std::string>().find("trash slot")!=std::string::npos);
+ auto records=f.journal.recent(5);
+ CHECK(!records.empty());
+ CHECK_EQ(records[0].state,"partial");
+}
+TEST(native_p0_destroy_owner_with_pending_job_does_not_access_dead_service){
+ JobsFixture f;
+ std::atomic<bool> release{false};
+ std::string blocker,id;
+ CHECK_OK(f.queue.submit("block","test",[&](Job&){
+   while(!release.load())std::this_thread::sleep_for(std::chrono::milliseconds(2));
+ },blocker));
+ for(int i=0;i<500 && f.queue.get(blocker)["state"]!="running";++i)
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+ CHECK_EQ(f.queue.get(blocker)["state"],"running");
+ NativeRequest r{NativeOperation::copy,"sdcard","KICK.wav","sdcard","dst",true};
+ CHECK_OK(f.jobs->submit(r,id));
+ f.jobs.reset();
+ release=true;
+ CHECK_EQ(f.finish(id),"cancelled");
+ CHECK(!f.t.exists("sd/dst/KICK.wav"));
+}
