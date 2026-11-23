@@ -56,9 +56,13 @@ public:
     void close() noexcept;
     bool active() const{return handle_!=nullptr;}
 private:
+    OwnershipAuthority* authority_=nullptr;
     void* handle_=nullptr; // snd_rawmidi_t* without forcing ALSA headers on cross builds
+    class Decoder;
+    // Fixed-size incremental parser; reset when the stream is reopened.
     std::uint8_t status_=0, data0_=0;
-    int count_=0, sysex_=0;
+    int count_=0;
+    bool sysex_=false;
     bool feed(std::uint8_t byte,SurfaceEvent& event);
 };
 } // namespace dm::native
