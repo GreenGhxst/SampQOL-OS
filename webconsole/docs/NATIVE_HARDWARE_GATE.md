@@ -48,3 +48,52 @@ References:
 5. The `DM_WITH_ALSA=ON` host CI check verifies compilation against libasound on Ubuntu, **not** ABI compatibility with the MPC or functioning MIDI input there.
 
 Do not describe P0.2 as operational physical screen/input integration or hardware release.
+
+## P0.3: opt-in concrete DRM/KMS backend (source implementation, not hardware verified)
+
+Files: `src/native/kms_backend.{h,cpp}`, `src/native/kms_libdrm.cpp`,
+`tests/core/test_kms_backend.cpp`.
+
+- A **real libdrm** implementation is compiled only with
+  `-DDM_WITH_DRM=ON`; the default remains **OFF**. The AArch64 baseline
+  cross-build intentionally excludes libdrm until a suitable target sysroot
+  and display ownership are verified.
+- `KmsDisplayBackend` requires an injected `RecoveryGuard` that certifies
+  an **independent recovery supervisor and genuine exclusive stock app
+  handoff**. The only supplied production-safe guard is
+  `NoRecoveryGuard` which denies every acquisition; no launch path exposes
+  a permissive guard. The backend rechecks its guard before and after
+  modeset and before every frame. Unit tests use a fake permissive guard.
+- `LibdrmDriver` requires an explicitly supplied DRM card path; never
+  guesses card0. With an approved lease, it enumerates KMS connectors and
+  CRTCs, **refuses unverified portrait-mode rotation**, snapshots the
+  previous CRTC and connector list, calls `drmSetMaster`, allocates/maps
+  a 320×240 XRGB8888 dumb buffer, registers framebuffer, sets CRTC, copies
+  frames row-wise respecting pitch, and flushes with `drmModeDirtyFB`.
+  Failure cleanup restores the previous CRTC **best effort**, destroys
+  framebuffers/buffers, drops DRM master and closes the fd.
+- Fake-driver fault tests cover denial before device open, every acquisition
+  stage, token revocation at ownership stages, repeated acquisition,
+  wrong-sized frames, frame-write errors and exceptions, cleanup on normal
+  and failed paths.
+- Host CI with libdrm development headers checks that these APIs compile;
+  CI never opens `/dev/dri` or captures/sets a real display.
+
+### Crash-recovery boundary — strictly not cleared
+
+In-process `release()` works only on normal shutdown and catchable errors.
+**SIGKILL, power loss, kernel faults or a crash before stack unwinding
+do not execute C++ destructors.** The implementation therefore deliberately
+**refuses all real display takeover** until an independently supervised,
+device-tested recovery owner is available. A recovery service must observe
+the app independently (systemd or an equivalent monitor), restore the stock
+panel driver/CRTC and stock service if the native app dies, preserve an
+untouched original service configuration, and prove recovery under abnormal
+termination on a sacrificial device. A previous CRTC framebuffer ID alone
+may be invalid after the old owner has exited; it is not a sufficient
+crash-recovery strategy.
+
+This is a concrete KMS backend with an enforced **crash-safety gate**, not
+completed physical crash recovery. Do not enable or ship DRM acquisition.
+The previous tests, signed autorun boundaries, formatting exclusions and
+stock/SampQOL handoff restrictions remain in force.
