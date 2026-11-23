@@ -429,9 +429,13 @@ Status FileOps::read_trash_index(int trashfd, json& idx) {
     if (fd < 0) return errno == ENOENT ? Status::good() : errno_status("trash index");
     std::string s; char buf[4096]; ssize_t n;
     while ((n = ::read(fd, buf, sizeof buf)) > 0) s.append(buf, std::size_t(n));
+    const int saved_errno = errno;
     ::close(fd);
+    if (n < 0) return errno_to_status(saved_errno, "read trash index");
     json j = json::parse(s, nullptr, false);
-    if (!j.is_discarded() && j.is_array()) idx = j;
+    if (j.is_discarded() || !j.is_array())
+        return Status::fail(Err::io, "trash recovery index is corrupt");
+    idx = std::move(j);
     return Status::good();
 }
 
@@ -476,11 +480,22 @@ Status FileOps::remove(const VolumeInfo& v, const RelPath& p, bool permanent, st
         if (st.code == Err::unsupported) return Status::fail(Err::unsupported, "trash is not possible across devices; use a permanent delete");
         return st;
     }
-    json idx; read_trash_index(trash.get(), idx);
-    idx.push_back(json{{"id", id}, {"name", r.leaf}, {"original_path", p.str()}, {"size", bytes}, {"deleted_at", iso8601_now()}});
-    st = write_trash_index(trash.get(), idx);
-    journal_.finish(jid, st.ok() ? "done" : "partial", st.message);
+    json idx;
+    st = read_trash_index(trash.get(), idx);
+    if (st.ok()) {
+        idx.push_back(json{{"id", id}, {"name", r.leaf}, {"original_path", p.str()}, {"size", bytes}, {"deleted_at", iso8601_now()}});
+        st = write_trash_index(trash.get(), idx);
+    }
     if (trash_id) *trash_id = id;
+    if (!st.ok()) {
+        // The source already moved. Preserve the slot ID in the journal and
+        // return a PARTIAL result, never success or a retry-safe failure.
+        const std::string error = "File moved to trash slot " + id +
+            " but its recovery index could not be saved: " + st.message;
+        journal_.finish(jid, "partial", error);
+        return Status::fail(Err::partial, error);
+    }
+    journal_.finish(jid, "done");
     return Status::good();
 }
 
