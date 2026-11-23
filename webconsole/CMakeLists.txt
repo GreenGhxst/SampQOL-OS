@@ -39,7 +39,7 @@ endif()
 
 # Native controller is platform-independent. It never reads raw device inputs or
 # bypasses the existing server-side filesystem authority.
-add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp)
+add_library(dm_native STATIC src/native/native_model.cpp src/native/native_core_service.cpp src/native/hardware_bridge.cpp)
 target_include_directories(dm_native PUBLIC src)
 target_link_libraries(dm_native PUBLIC dm_core)
 
@@ -56,7 +56,7 @@ if(DM_BUILD_TESTS)
   enable_testing()
   add_executable(core_tests tests/core/test_main.cpp tests/core/test_paths.cpp tests/core/test_volumes.cpp
     tests/core/test_fileops.cpp tests/core/test_journal_jobs.cpp tests/core/test_auth.cpp tests/core/test_format.cpp
-    tests/core/test_misc.cpp tests/core/test_native.cpp)
+    tests/core/test_misc.cpp tests/core/test_native.cpp tests/core/test_native_hardware.cpp)
   target_link_libraries(core_tests PRIVATE dm_server dm_native)
   add_test(NAME core_tests COMMAND core_tests)
   add_test(NAME native_desktop_smoke COMMAND diskmode-native-desktop --smoke)
