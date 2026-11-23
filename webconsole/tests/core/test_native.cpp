@@ -23,8 +23,6 @@ struct FakeService final : Service {
     more=offset+out.size()<it->second.size(); return true;
   }
 };
-struct UnsafeService : FakeService {
-};
 // Direct integration of CoreService with real authorization and temporary mounts.
 struct CoreFixture {
     TempDir t;
