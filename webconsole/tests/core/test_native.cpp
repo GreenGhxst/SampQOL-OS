@@ -144,3 +144,17 @@ TEST(native_core_service_pagination_hides_protected) {
   CHECK(!f.service->list("sdcard","",0,0,page,more,err));
   CHECK(!f.service->list("sdcard","",0,300,page,more,err));
 }
+
+TEST(native_core_service_refuses_truncated_directory_without_partial_results) {
+  CoreFixture f;
+  // FileOps has a hard cap of 20,000 visible entries per scan.
+  for(int i=0;i<20001;++i) {
+    char name[40]; std::snprintf(name,sizeof(name),"N%05d.wav",i);
+    f.t.write(std::string("sd/")+name,"");
+  }
+  std::vector<Item> page={{"old",false}};
+  std::string error;bool more=true;
+  CHECK(!f.service->list("sdcard","",0,128,page,more,error));
+  CHECK(page.empty());CHECK(!more);
+  CHECK(error.find("safety limit")!=std::string::npos);
+}
