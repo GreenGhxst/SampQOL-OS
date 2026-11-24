@@ -92,6 +92,9 @@ if(DM_BUILD_TESTS)
   # Exit code 2 is the EXPECTED safe result until hardware readiness is proven.
   add_test(NAME startup_diagnostics_fail_closed COMMAND diskmode-native-diagnostics)
   set_tests_properties(startup_diagnostics_fail_closed PROPERTIES WILL_FAIL TRUE)
+  add_test(NAME hardware_evidence_read_only COMMAND diskmode-native-diagnostics --evidence)
+  set_tests_properties(hardware_evidence_read_only PROPERTIES
+    PASS_REGULAR_EXPRESSION "\"hardware_verified\":false")
   if(TARGET diskmode-recovery-sim)
     foreach(mode IN ITEMS normal sigkill child-crash revoke timeout restore-fail stop-fail)
       add_test(NAME recovery_process_${mode} COMMAND diskmode-recovery-sim ${mode})
