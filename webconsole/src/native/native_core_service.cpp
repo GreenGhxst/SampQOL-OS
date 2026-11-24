@@ -36,6 +36,13 @@ bool CoreService::list(const std::string& volume, const std::string& relative_di
         options.limit = 2000;
         const Status st = files_.list(*v,path,options,listing);
         if (!st.ok()) { out.clear(); error = st.message; return false; }
+        if (listing.truncated) {
+            // The shared FileOps cap is not an exhaustive directory view.
+            // Never silently omit entries or allow actions on a partial list.
+            out.clear(); has_more = false;
+            error = "Directory exceeds the 20,000-entry safety limit";
+            return false;
+        }
         if (listing.entries.empty()) break;
         for (const auto& e : listing.entries) {
             if (e.is_protected) continue;
