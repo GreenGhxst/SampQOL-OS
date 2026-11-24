@@ -49,3 +49,10 @@ device.** The table separates what was done from what remains.
   become eligible on hardware with this build, by design.
 * Audition plays in the browser only; no device-side playback.
 * Remote control stays disabled (501).
+
+
+## Phase 4 read-only evidence (not a hardware authorization)
+
+Run `diskmode-native-diagnostics --evidence` to print one JSON report to stdout. It uses existing read-only kernel queries, enumerates DRM *device-node candidates* without claiming DRM master, reads up to 64 lines of `/proc/asound/cards` without opening MIDI endpoints, and uses the existing volume registry to report mount and USB-export ownership observations. No device paths are opened for write.
+
+`hardware_verified`, `ownership_granted`, `recovery_verified`, `panel_verified`, and `mapping_verified` are always false. The report cannot grant a lease or bypass the default fail-closed `NoRecoveryGuard` / `RefuseOwnership` safeguards. Missing /proc or DRM information is reported as unavailable, not treated as readiness. Run without arguments for the existing blocked startup preflight and nonzero exit code. The evidence JSON is not a substitute for supervised physical validation.
