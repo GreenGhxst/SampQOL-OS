@@ -22,7 +22,7 @@ int main(int argc,char** argv) {
                {"recovery_verified",false}};
   struct utsname system{};
   if(::uname(&system)==0)
-   report["kernel"]={{"machine",system.machine},{"release",system.release}};
+   report["kernel"]={{"machine",system.machine}}; // Avoid exposing a kernel-build fingerprint
   else report["kernel"]={{"status","unavailable"}};
   const auto drm=probe_display_candidates();
   report["display"]={{"candidate_nodes",drm.nodes},
@@ -30,21 +30,30 @@ int main(int argc,char** argv) {
   std::ifstream cards("/proc/asound/cards");
   std::string line;
   bool control_surface_hint=false;
-  bool cards_readable=bool(cards);
-  // Read a bounded amount from procfs; strings are not executed or used
-  // as a device selector, and this never opens any ALSA endpoint.
-  for(std::size_t n=0;cards && n<64 && std::getline(cards,line);++n)
-   if(line.find("Control Surface")!=std::string::npos ||
-      line.find("Surface")!=std::string::npos)
+  const bool cards_readable=bool(cards);
+  std::size_t cards_lines=0;
+  // Bounded procfs read: a name match is only a hint, never verified input.
+  for(;cards_lines<64 && std::getline(cards,line);++cards_lines)
+   if(line.find("Control Surface")!=std::string::npos)
     control_surface_hint=true;
+  const bool cards_truncated=cards_readable && cards_lines==64 && bool(std::getline(cards,line));
   report["input"]={{"alsa_cards_readable",cards_readable},
-                   {"control_surface_hint",control_surface_hint},
+                   {"alsa_cards_truncated",cards_truncated},
+                   {"control_surface_hint",cards_readable ?
+                       json(control_surface_hint) : json(nullptr)},
                    {"mapping_verified",false}};
   report["storage"]=json::array();
-  for(const auto& v:volumes.list())
+  for(const auto& v:volumes.list()) {
+   // The existing registry cannot distinguish "not USB-exported" from
+   // "configfs unreadable". Never translate that into verified ownership.
+   const char* observed=v.ownership==Ownership::usb_host?"usb-export-detected":
+                        v.ownership==Ownership::unmounted?"unmounted":
+                        "unknown";
    report["storage"].push_back({{"id",v.id},{"mounted",v.mounted},
-         {"ownership",ownership_name(v.ownership)},
-         {"fs_read_only",v.fs_read_only},{"filesystem",v.fs_type}});
+         {"ownership_observation",observed},{"ownership_verified",false},
+         {"fs_read_only",v.mounted ? json(v.fs_read_only) : json(nullptr)},
+         {"filesystem",v.mounted ? json(v.fs_type) : json(nullptr)}});
+  }
   report["note"]="Read-only observations only; no verified physical handoff";
   std::cout<<report.dump()<<'\n';
   return 0;
