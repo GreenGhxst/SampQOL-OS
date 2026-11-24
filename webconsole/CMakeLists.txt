@@ -109,6 +109,9 @@ if(DM_BUILD_TESTS)
   endif()
   find_program(PYTHON3 python3)
   if(PYTHON3)
+    add_test(NAME hardware_evidence_contract COMMAND ${PYTHON3} -I
+      ${CMAKE_SOURCE_DIR}/tests/core/test_hardware_evidence.py
+      $<TARGET_FILE:diskmode-native-diagnostics>)
     add_test(NAME http_tests COMMAND ${PYTHON3} -I ${CMAKE_SOURCE_DIR}/tests/http/test_api.py $<TARGET_FILE:diskmode-webconsole> ${CMAKE_SOURCE_DIR}/web)
     set_tests_properties(http_tests PROPERTIES TIMEOUT 300)
   endif()
