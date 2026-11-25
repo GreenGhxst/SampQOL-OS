@@ -159,19 +159,20 @@ TEST(copy_revocation_before_commit_preserves_source_and_no_destination) {
     ctx.progress=[&](std::uint64_t,std::uint64_t){revoked=true;};
     ctx.revoked=[&]{return revoked;};
     CHECK_ERR(f.ops.copy(f.sd,f.P("Samples/User/kick.wav"),f.usb,f.P(""),
-                         "",Conflict::fail,ctx),Err::cancelled);
+                         "",Conflict::fail,ctx),Err::partial);
     CHECK(f.t.exists("sd/Samples/User/kick.wav"));
     CHECK(!f.t.exists("usb/kick.wav"));
     Listing l; ListOptions o;o.show_hidden=true;
     CHECK_OK(f.ops.list(f.usb,f.P(""),o,l));
-    CHECK(l.entries.empty()); // temporary file removed
+    CHECK_EQ(l.entries.size(),1u);
+    CHECK(l.entries[0].name.rfind(".dmtmp-",0)==0); // no unlink after USB handoff
 }
 TEST(move_revocation_does_not_delete_source_or_commit_destination) {
     Fixture f; bool revoked=false; OpContext ctx;
     ctx.progress=[&](std::uint64_t,std::uint64_t){revoked=true;};
     ctx.revoked=[&]{return revoked;};
     CHECK_ERR(f.ops.move(f.sd,f.P("Samples/User/kick.wav"),f.usb,f.P(""),
-                         "",Conflict::fail,ctx),Err::cancelled);
+                         "",Conflict::fail,ctx),Err::partial);
     CHECK(f.t.exists("sd/Samples/User/kick.wav"));
     CHECK(!f.t.exists("usb/kick.wav"));
     revoked=true;
