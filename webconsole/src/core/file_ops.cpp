@@ -262,10 +262,13 @@ Status FileOps::copy_regular(int sdir, const std::string& sname, int ddir, const
         done += std::uint64_t(n);
         if (ctx.progress) ctx.progress(done, total);
     }
+    if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled before commit"); }
     if (::fsync(tfd) != 0) { Status s = errno_status("fsync"); cleanup(); return s; }
+    if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled before commit"); }
     struct timespec times[2] = {sst.st_atim, sst.st_mtim};
     ::futimens(tfd, times);
     dst.reset();
+    if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled before commit"); }
     int rc = overwrite ? ::renameat(ddir, tmp.c_str(), ddir, dname.c_str())
                        : rename_noreplace(ddir, tmp.c_str(), ddir, dname.c_str());
     if (rc != 0) { Status s = errno_status("commit"); cleanup(); return s; }
@@ -352,6 +355,7 @@ Status FileOps::move(const VolumeInfo& sv, const RelPath& src, const VolumeInfo&
     st = PathAuthorizer::check_write(dv, dst_dir.child(wanted)); if (!st.ok()) return st;
     if (sv.id == dv.id && dst_dir.starts_with(src)) return Status::fail(Err::invalid_argument, "cannot move a folder into itself");
     if (sv.id == dv.id && dst_dir.str() == src.parent().str() && wanted == src.leaf()) return Status::good();
+    if (ctx.cancelled()) return Status::fail(Err::cancelled, "cancelled before move");
     if (sv.id == dv.id) {
         Resolved rs, rd;
         st = PathAuthorizer::resolve(sv, src, rs, true); if (!st.ok()) return st;
@@ -362,6 +366,7 @@ Status FileOps::move(const VolumeInfo& sv, const RelPath& src, const VolumeInfo&
         st = pick_destination(ddir.get(), "", wanted, c, fname, overwrite); if (!st.ok()) return st;
         if (overwrite && rs.is_dir()) return Status::fail(Err::exists, "cannot overwrite a folder by moving; copy and merge instead");
         std::string jid = journal_.begin("move", sv.id + ":" + src.str(), dv.id + ":" + dst_dir.child(fname).str());
+        if (ctx.cancelled()) { journal_.finish(jid,"cancelled","Storage ownership changed"); return Status::fail(Err::cancelled,"cancelled before move"); }
         int rc = overwrite ? ::renameat(rs.dir.get(), rs.leaf.c_str(), ddir.get(), fname.c_str())
                            : rename_noreplace(rs.dir.get(), rs.leaf.c_str(), ddir.get(), fname.c_str());
         if (rc != 0 && errno != EXDEV) { st = errno_status("move"); journal_.finish(jid, "failed", st.message); return st; }
@@ -372,9 +377,14 @@ Status FileOps::move(const VolumeInfo& sv, const RelPath& src, const VolumeInfo&
     std::string fname;
     st = copy(sv, src, dv, dst_dir, wanted, c, ctx, &fname);
     if (!st.ok()) return st;
+    // Destination is committed: never delete the source after revocation.
+    if (ctx.cancelled())
+        return Status::fail(Err::partial,"Copied, but source retained after cancellation or storage revocation");
     Resolved rs;
     Status s2 = PathAuthorizer::resolve(sv, src, rs, true);
     if (!s2.ok()) return s2;
+    if (ctx.cancelled())
+        return Status::fail(Err::partial,"Copied, but source retained after cancellation or storage revocation");
     std::string jid = journal_.begin("move-delete-source", sv.id + ":" + src.str(), dv.id + ":" + dst_dir.child(fname).str());
     s2 = remove_tree(rs.dir.get(), rs.leaf);
     journal_.finish(jid, s2.ok() ? "done" : "failed", s2.message);
