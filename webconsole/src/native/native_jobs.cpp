@@ -79,8 +79,22 @@ Status NativeJobs::submit(const NativeRequest& r,std::string& job_id) {
         context.progress=[&job](std::uint64_t done,std::uint64_t total) {
             job.done.store(done);job.total.store(total);
         };
+        context.revoked=[state,r]() {
+            // Recheck both endpoints at every copy checkpoint. Detection is
+            // best-effort; only a hardware-exclusive handoff can eliminate races.
+            try {
+                state->volumes.refresh();
+                const auto src=state->volumes.get(r.source_volume);
+                if(!src || !src->mounted || src->ownership!=Ownership::device) return true;
+                if(r.op==NativeOperation::trash) return false;
+                const auto dst=state->volumes.get(r.destination_volume);
+                return !dst || !dst->mounted || dst->ownership!=Ownership::device;
+            } catch(...) { return true; }
+        };
         if(r.op==NativeOperation::trash) {
-            status=state->files.remove(*sv,from,false);
+            status=context.cancelled() ?
+                Status::fail(Err::cancelled,"Storage ownership changed before trash") :
+                state->files.remove(*sv,from,false);
         } else {
             auto dv=state->volumes.get(r.destination_volume);
             if(!dv || !dv->mounted || dv->ownership!=Ownership::device) {
