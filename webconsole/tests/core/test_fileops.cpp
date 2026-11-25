@@ -153,3 +153,30 @@ TEST(storage_removal_is_reported_not_crashed) {
     CHECK_ERR(f.ops.list(gone, f.P(""), o, l), Err::unavailable);
     gone.mounted = false; CHECK_ERR(f.ops.mkdir(gone, f.P("x")), Err::unavailable);
 }
+
+TEST(copy_revocation_before_commit_preserves_source_and_no_destination) {
+    Fixture f; bool revoked=false; OpContext ctx;
+    ctx.progress=[&](std::uint64_t,std::uint64_t){revoked=true;};
+    ctx.revoked=[&]{return revoked;};
+    CHECK_ERR(f.ops.copy(f.sd,f.P("Samples/User/kick.wav"),f.usb,f.P(""),
+                         "",Conflict::fail,ctx),Err::cancelled);
+    CHECK(f.t.exists("sd/Samples/User/kick.wav"));
+    CHECK(!f.t.exists("usb/kick.wav"));
+    Listing l; ListOptions o;o.show_hidden=true;
+    CHECK_OK(f.ops.list(f.usb,f.P(""),o,l));
+    CHECK(l.entries.empty()); // temporary file removed
+}
+TEST(move_revocation_does_not_delete_source_or_commit_destination) {
+    Fixture f; bool revoked=false; OpContext ctx;
+    ctx.progress=[&](std::uint64_t,std::uint64_t){revoked=true;};
+    ctx.revoked=[&]{return revoked;};
+    CHECK_ERR(f.ops.move(f.sd,f.P("Samples/User/kick.wav"),f.usb,f.P(""),
+                         "",Conflict::fail,ctx),Err::cancelled);
+    CHECK(f.t.exists("sd/Samples/User/kick.wav"));
+    CHECK(!f.t.exists("usb/kick.wav"));
+    revoked=true;
+    CHECK_ERR(f.ops.move(f.sd,f.P("Samples/User/snare.wav"),f.sd,f.P("Samples/Kit"),
+                         "",Conflict::fail,ctx),Err::cancelled);
+    CHECK(f.t.exists("sd/Samples/User/snare.wav"));
+    CHECK(!f.t.exists("sd/Samples/Kit/snare.wav"));
+}
