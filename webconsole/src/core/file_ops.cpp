@@ -227,10 +227,10 @@ Status FileOps::tree_size(int dir, const std::string& name, std::uint64_t& bytes
     while (dirent* e = ::readdir(d)) {
         if (!std::strcmp(e->d_name, ".") || !std::strcmp(e->d_name, "..")) continue;
         st2 = tree_size(fd, e->d_name, bytes, count, limit);
-        if (!st2.ok() && st2.code == Err::unsupported) break;
+        if (!st2.ok()) break;
     }
     ::closedir(d);
-    return st2.code == Err::unsupported ? st2 : Status::good();
+    return st2;
 }
 
 Status FileOps::copy_regular(int sdir, const std::string& sname, int ddir, const std::string& dname,
@@ -248,8 +248,14 @@ Status FileOps::copy_regular(int sdir, const std::string& sname, int ddir, const
     temps.push_back(dabs + "/" + tmp);
     auto cleanup = [&]() { ::unlinkat(ddir, tmp.c_str(), 0); };
     std::vector<char> buf(kCopyBuf);
+    // Sample ownership at file start and approximately each MiB, then always
+    // recheck at irreversible commit. Avoid a full mount/configfs scan per IO block.
+    std::uint64_t next_check = done;
     for (;;) {
-        if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled"); }
+        if (done >= next_check) {
+            if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled"); }
+            next_check = done + 1024 * 1024;
+        }
         ssize_t n = ::read(sfd, buf.data(), buf.size());
         if (n < 0) { if (errno == EINTR) continue; Status s = errno_status("read"); cleanup(); return s; }
         if (n == 0) break;
@@ -290,6 +296,7 @@ Status FileOps::copy_tree(int sdir, const std::string& sname, int ddir, const st
         return copy_regular(sdir, sname, ddir, dname, ctx, done, total, dabs, temps, overwrite);
     }
     if (!S_ISDIR(st.st_mode)) return Status::fail(Err::forbidden, "skipped special file: " + sname);
+    if (ctx.cancelled()) return Status::fail(Err::cancelled, "cancelled before directory creation");
     if (::mkdirat(ddir, dname.c_str(), 0755) != 0 && errno != EEXIST) return errno_status("mkdir");
     int sfd = ::openat(sdir, sname.c_str(), kDirFlags);
     if (sfd < 0) return errno_status(sname.c_str());
@@ -302,12 +309,19 @@ Status FileOps::copy_tree(int sdir, const std::string& sname, int ddir, const st
     std::size_t failures = 0; std::string first;
     while (dirent* e = ::readdir(dir)) {
         if (!std::strcmp(e->d_name, ".") || !std::strcmp(e->d_name, "..")) continue;
-        if (ctx.cancelled()) { ::closedir(dir); return Status::fail(Err::cancelled, "cancelled"); }
+        if (ctx.cancelled()) {
+            ::closedir(dir);
+            return Status::fail(Err::partial, "Copy interrupted; destination directory may be incomplete");
+        }
         Status r = copy_tree(sfd, e->d_name, dfd, e->d_name, ctx, done, total, temps, dabs + "/" + dname, overwrite);
-        if (r.code == Err::cancelled) { ::closedir(dir); return r; }
+        if (r.code == Err::cancelled || r.code == Err::partial) {
+            ::closedir(dir);
+            return Status::fail(Err::partial, "Copy interrupted or incomplete; destination directory may contain partial results: " + r.message);
+        }
         if (!r.ok()) { if (!failures++) first = r.message; }
     }
     ::closedir(dir);
+    if (ctx.cancelled()) return Status::fail(Err::partial, "Copy interrupted; destination directory may be incomplete");
     if (failures) return Status::fail(Err::partial, std::to_string(failures) + " item(s) failed; first: " + first);
     return Status::good();
 }
@@ -386,8 +400,8 @@ Status FileOps::move(const VolumeInfo& sv, const RelPath& src, const VolumeInfo&
     if (ctx.cancelled())
         return Status::fail(Err::partial,"Copied, but source retained after cancellation or storage revocation");
     std::string jid = journal_.begin("move-delete-source", sv.id + ":" + src.str(), dv.id + ":" + dst_dir.child(fname).str());
-    s2 = remove_tree(rs.dir.get(), rs.leaf);
-    journal_.finish(jid, s2.ok() ? "done" : "failed", s2.message);
+    s2 = remove_tree(rs.dir.get(), rs.leaf, &ctx);
+    journal_.finish(jid, s2.ok() ? "done" : "partial", s2.message);
     if (final_name) *final_name = fname;
     if (!s2.ok()) return Status::fail(Err::partial, "copied, but the source could not be removed: " + s2.message);
     return Status::good();
@@ -395,10 +409,12 @@ Status FileOps::move(const VolumeInfo& sv, const RelPath& src, const VolumeInfo&
 
 // ---------------------------------------------------------------- delete / trash
 
-Status FileOps::remove_tree(int dir, const std::string& name) {
+Status FileOps::remove_tree(int dir, const std::string& name, const OpContext* ctx) {
+    if (ctx && ctx->cancelled()) return Status::fail(Err::cancelled, "Source deletion interrupted by cancellation or storage revocation");
     struct stat st{};
     if (::fstatat(dir, name.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0) return errno_status(name.c_str());
     if (!S_ISDIR(st.st_mode)) {
+        if (ctx && ctx->cancelled()) return Status::fail(Err::cancelled, "Source deletion interrupted");
         if (::unlinkat(dir, name.c_str(), 0) != 0) return errno_status(name.c_str());
         return Status::good();
     }
@@ -409,11 +425,12 @@ Status FileOps::remove_tree(int dir, const std::string& name) {
     Status first = Status::good();
     while (dirent* e = ::readdir(d)) {
         if (!std::strcmp(e->d_name, ".") || !std::strcmp(e->d_name, "..")) continue;
-        Status r = remove_tree(fd, e->d_name);
-        if (!r.ok() && first.ok()) first = r;
+        Status r = remove_tree(fd, e->d_name, ctx);
+        if (!r.ok()) { if (first.ok()) first = r; if (ctx) break; }
     }
     ::closedir(d);
     if (!first.ok()) return first;
+    if (ctx && ctx->cancelled()) return Status::fail(Err::cancelled, "Source deletion interrupted");
     if (::unlinkat(dir, name.c_str(), AT_REMOVEDIR) != 0) return errno_status(name.c_str());
     return Status::good();
 }
