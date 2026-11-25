@@ -180,3 +180,13 @@ TEST(move_revocation_does_not_delete_source_or_commit_destination) {
     CHECK(f.t.exists("sd/Samples/User/snare.wav"));
     CHECK(!f.t.exists("sd/Samples/Kit/snare.wav"));
 }
+
+TEST(cross_volume_move_revoked_after_copy_retains_both_copies) {
+    Fixture f; OpContext ctx;
+    // Simulate revocation after the destination commit, before source deletion.
+    ctx.revoked=[&]{return f.t.exists("usb/kick.wav");};
+    CHECK_ERR(f.ops.move(f.sd,f.P("Samples/User/kick.wav"),f.usb,f.P(""),
+                         "",Conflict::fail,ctx),Err::partial);
+    CHECK(f.t.exists("sd/Samples/User/kick.wav"));
+    CHECK_EQ(f.t.read("usb/kick.wav"),f.t.read("sd/Samples/User/kick.wav"));
+}
