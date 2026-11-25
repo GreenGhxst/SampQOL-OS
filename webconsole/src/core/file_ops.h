@@ -104,7 +104,7 @@ private:
     Status copy_regular(int sdir, const std::string& sname, int ddir, const std::string& dname,
                         const OpContext& ctx, std::uint64_t& done, std::uint64_t total, const std::string& dabs,
                         std::vector<std::string>& temps, bool overwrite);
-    Status remove_tree(int dir, const std::string& name);
+    Status remove_tree(int dir, const std::string& name, const OpContext* ctx = nullptr);
     Status tree_size(int dir, const std::string& name, std::uint64_t& bytes, std::uint64_t& count, std::size_t limit);
     Status open_trash(const VolumeInfo& v, ScopedFd& trash, bool create);
     Status read_trash_index(int trashfd, json& idx);
