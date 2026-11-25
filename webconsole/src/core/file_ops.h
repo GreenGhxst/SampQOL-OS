@@ -47,7 +47,9 @@ using ProgressFn = std::function<void(std::uint64_t done, std::uint64_t total)>;
 struct OpContext {
     std::atomic<bool>* cancel = nullptr;
     ProgressFn progress;
-    bool cancelled() const { return cancel && cancel->load(); }
+    // Optional synchronous ownership check, installed by native jobs only.
+    std::function<bool()> revoked;
+    bool cancelled() const { return (cancel && cancel->load()) || (revoked && revoked()); }
 };
 
 struct TrashItem {
