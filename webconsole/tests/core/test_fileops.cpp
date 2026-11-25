@@ -190,3 +190,53 @@ TEST(cross_volume_move_revoked_after_copy_retains_both_copies) {
     CHECK(f.t.exists("sd/Samples/User/kick.wav"));
     CHECK_EQ(f.t.read("usb/kick.wav"),f.t.read("sd/Samples/User/kick.wav"));
 }
+
+TEST(directory_copy_revocation_reports_partial_and_preserves_source) {
+    Fixture f; OpContext ctx;
+    // Trigger after one nested file has been committed.
+    ctx.revoked=[&]{ return f.t.exists("usb/KitCopy/Sub/b.wav"); };
+    CHECK_ERR(f.ops.copy(f.sd,f.P("Samples/Kit"),f.usb,f.P(""),
+                         "KitCopy",Conflict::fail,ctx),Err::partial);
+    CHECK(f.t.exists("sd/Samples/Kit/Sub/b.wav"));
+    CHECK(f.t.exists("sd/Samples/Kit/a.wav"));
+    // Partial directories are deliberately retained and reported; cleanup
+    // writes are unsafe when USB ownership might have changed.
+    CHECK(f.t.exists("usb/KitCopy/Sub/b.wav"));
+}
+TEST(cross_volume_move_revocation_during_recursive_source_delete_stops) {
+    Fixture f; OpContext ctx;
+    f.t.mkdir("sd/Source");
+    f.t.write("sd/Source/one.wav","one");
+    f.t.write("sd/Source/two.wav","two");
+    f.t.write("sd/Source/three.wav","three");
+    int checks_after_delete=0;
+    ctx.revoked=[&]{
+        // The callback is false throughout the copy; once deletion begins,
+        // the first removed file causes the subsequent probe to deny.
+        const bool missing=!f.t.exists("sd/Source/one.wav") ||
+                           !f.t.exists("sd/Source/two.wav") ||
+                           !f.t.exists("sd/Source/three.wav");
+        if(missing) ++checks_after_delete;
+        return missing;
+    };
+    CHECK_ERR(f.ops.move(f.sd,f.P("Source"),f.usb,f.P(""),
+                         "",Conflict::fail,ctx),Err::partial);
+    CHECK(checks_after_delete>0);
+    int remaining=0;
+    for(const auto& name:{"one.wav","two.wav","three.wav"})
+        if(f.t.exists(std::string("sd/Source/")+name)) ++remaining;
+    CHECK(remaining>=1);
+    CHECK(f.t.exists("usb/Source/one.wav"));
+    CHECK(f.t.exists("usb/Source/two.wav"));
+    CHECK(f.t.exists("usb/Source/three.wav"));
+}
+TEST(copy_large_file_limits_ownership_probes_without_skipping_final_check) {
+    Fixture f;
+    f.t.write("sd/Samples/User/large.wav", std::string(5*1024*1024,'x'));
+    OpContext ctx; int probes=0;
+    ctx.revoked=[&]{++probes;return false;};
+    CHECK_OK(f.ops.copy(f.sd,f.P("Samples/User/large.wav"),f.usb,f.P(""),
+                        "",Conflict::fail,ctx));
+    CHECK(probes>=3);
+    CHECK(probes<30); // one-per-block regression would far exceed this bound
+}
