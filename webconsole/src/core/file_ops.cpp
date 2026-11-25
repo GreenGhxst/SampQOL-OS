@@ -247,13 +247,24 @@ Status FileOps::copy_regular(int sdir, const std::string& sname, int ddir, const
     ScopedFd dst(tfd);
     temps.push_back(dabs + "/" + tmp);
     auto cleanup = [&]() { ::unlinkat(ddir, tmp.c_str(), 0); };
+    // Never mutate a destination after its ownership may have changed.
+    auto interrupted = [&]() -> Status {
+        if (ctx.cancel && ctx.cancel->load()) {
+            cleanup();
+            return Status::fail(Err::cancelled, "cancelled");
+        }
+        if (ctx.revoked && ctx.revoked())
+            return Status::fail(Err::partial, "Storage ownership revoked; temporary file retained for recovery");
+        return Status::good();
+    };
     std::vector<char> buf(kCopyBuf);
     // Sample ownership at file start and approximately each MiB, then always
     // recheck at irreversible commit. Avoid a full mount/configfs scan per IO block.
     std::uint64_t next_check = done;
     for (;;) {
         if (done >= next_check) {
-            if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled"); }
+            auto check = interrupted();
+            if (!check.ok()) return check;
             next_check = done + 1024 * 1024;
         }
         ssize_t n = ::read(sfd, buf.data(), buf.size());
@@ -268,13 +279,13 @@ Status FileOps::copy_regular(int sdir, const std::string& sname, int ddir, const
         done += std::uint64_t(n);
         if (ctx.progress) ctx.progress(done, total);
     }
-    if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled before commit"); }
+    { auto check = interrupted(); if (!check.ok()) return check; }
     if (::fsync(tfd) != 0) { Status s = errno_status("fsync"); cleanup(); return s; }
-    if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled before commit"); }
+    { auto check = interrupted(); if (!check.ok()) return check; }
     struct timespec times[2] = {sst.st_atim, sst.st_mtim};
     ::futimens(tfd, times);
     dst.reset();
-    if (ctx.cancelled()) { cleanup(); return Status::fail(Err::cancelled, "cancelled before commit"); }
+    { auto check = interrupted(); if (!check.ok()) return check; }
     int rc = overwrite ? ::renameat(ddir, tmp.c_str(), ddir, dname.c_str())
                        : rename_noreplace(ddir, tmp.c_str(), ddir, dname.c_str());
     if (rc != 0) { Status s = errno_status("commit"); cleanup(); return s; }
@@ -353,7 +364,9 @@ Status FileOps::copy(const VolumeInfo& sv, const RelPath& src, const VolumeInfo&
     std::uint64_t done = 0;
     if (rs.is_file()) st = copy_regular(rs.dir.get(), rs.leaf, ddir.get(), fname, ctx, done, total, dabs, temps, overwrite);
     else st = copy_tree(rs.dir.get(), rs.leaf, ddir.get(), fname, ctx, done, total, temps, dabs, overwrite);
-    for (auto& t : temps) ::unlink(t.c_str());
+    // No cleanup writes after the USB host may have taken ownership.
+    if (!(ctx.revoked && ctx.revoked()))
+        for (auto& t : temps) ::unlink(t.c_str());
     journal_.finish(jid, st.ok() ? "done" : st.code == Err::cancelled ? "cancelled" : st.code == Err::partial ? "partial" : "failed", st.message);
     if (final_name) *final_name = fname;
     return st;
