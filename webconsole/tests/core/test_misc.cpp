@@ -38,12 +38,12 @@ TEST(wav_probe_and_peaks) {
 
 namespace {
 struct World {
-    TempDir t; Journal journal; FileOps ops; std::unique_ptr<VolumeRegistry> reg; std::unique_ptr<Intelligence> intel; std::unique_ptr<Inbox> inbox;
+    TempDir t; Journal journal; FileOps ops; FakeProbe* probe=nullptr; std::unique_ptr<VolumeRegistry> reg; std::unique_ptr<Intelligence> intel; std::unique_ptr<Inbox> inbox;
     World() : journal(t.sub("data/journal.jsonl")), ops(journal, 0) {
         t.mkdir("data"); t.mkdir("sd/Samples/User"); t.mkdir("sd/autorun");
         t.write("sd/Samples/User/kick.wav", make_wav(1, 16, 500)); t.write("sd/Samples/User/kick copy.wav", make_wav(1, 16, 500));
         t.write("sd/Samples/User/hat.wav", make_wav(1, 16, 300)); t.write("sd/Samples/song.xpj", "proj"); t.write("sd/autorun/secret.txt", "s");
-        auto p = std::make_unique<FakeProbe>(); p->table = {{"/dev/mmcblk1p1", t.sub("sd"), "exfat", "rw"}};
+        auto p = std::make_unique<FakeProbe>(); probe=p.get(); p->table = {{"/dev/mmcblk1p1", t.sub("sd"), "exfat", "rw"}};
         auto rules = test_rules(); rules[0].mount_prefix = t.sub("s");
         reg = std::make_unique<VolumeRegistry>(rules, std::move(p));
         intel = std::make_unique<Intelligence>(t.sub("data"), *reg, ops); intel->load();
@@ -105,4 +105,21 @@ TEST(screen_sources_are_honest_about_simulation) {
     auto ppmsrc = make_file_frame_source(t.sub("frame.ppm")); CHECK_OK(ppmsrc->capture(f)); CHECK_OK(validate_frame(f));
     auto native = make_unavailable_native_source("no readback"); CHECK(!native->available()); CHECK_EQ(native->unavailable_reason(), "no readback");
     Frame bad; bad.width = 100; CHECK_ERR(validate_frame(bad), Err::invalid_argument);
+}
+
+TEST(inbox_commit_rechecks_usb_ownership_and_keeps_staged_data) {
+    World w;
+    w.t.write("data/revoked-stage.bin","keep this sample");
+    std::string id;
+    CHECK_OK(w.inbox->add(w.t.sub("data/revoked-stage.bin"),"revoked.wav","",id));
+    const auto v=*w.reg->get("sdcard");
+    RelPath dir;parse_rel_path("Samples/User",dir);
+    std::string path;
+    w.probe->exported={"mmcblk1"};
+    CHECK_ERR(w.inbox->commit(id,v,dir,Conflict::fail,path),Err::cancelled);
+    CHECK_EQ(w.inbox->count(),1u);
+    CHECK(!w.t.exists("sd/Samples/User/revoked.wav"));
+    w.probe->exported.clear();
+    CHECK_OK(w.inbox->commit(id,v,dir,Conflict::fail,path));
+    CHECK_EQ(w.t.read("sd/Samples/User/revoked.wav"),"keep this sample");
 }
