@@ -70,6 +70,13 @@ void WebConsole::register_extra_routes() {
         VolumeInfo v; RelPath d;
         if (!volume_or_error(u.value("volume", ""), res, v) || !rel_or_error(u.value("dir", ""), res, d)) return;
         std::string fname; OpContext ctx;
+        ctx.revoked = [this, id=v.id]() {
+            try {
+                registry_->refresh();
+                auto current = registry_->get(id);
+                return !current || !current->mounted || current->ownership != Ownership::device;
+            } catch (...) { return true; }
+        };
         st = ops_->place_file(staged, v, d, u.value("name", ""), conflict_from_string(b.value("conflict", "fail")), ctx, &fname);
         if (st.ok()) { transfers_->forget(id); intel_->invalidate(v.id, d.child(fname).str()); }
         send_status(res, st, json{{"path", st.ok() ? d.child(fname).str() : ""}, {"sha256", sha}, {"upload", transfers_->get(id, c.session.id)}});
