@@ -26,13 +26,12 @@ std::mutex g_trash_mutex;
 int rename_noreplace(int olddir, const char* oldp, int newdir, const char* newp) {
 #ifdef SYS_renameat2
     int r = (int)::syscall(SYS_renameat2, olddir, oldp, newdir, newp, (unsigned)RENAME_NOREPLACE);
-    if (r == 0 || (errno != EINVAL && errno != ENOSYS)) return r;
+    if (r == 0 || (errno != EINVAL && errno != ENOSYS && errno != EOPNOTSUPP)) return r;
 #endif
-    // Fallback (filesystem without flag support): check-then-rename. Not
-    // atomic, so only used when the kernel refuses the flag.
-    struct stat st{};
-    if (::fstatat(newdir, newp, &st, AT_SYMLINK_NOFOLLOW) == 0) { errno = EEXIST; return -1; }
-    return ::renameat(olddir, oldp, newdir, newp);
+    // No check-then-rename fallback: ordinary renameat can overwrite a
+    // file created by another process between the check and rename.
+    errno = EOPNOTSUPP;
+    return -1;
 }
 
 std::string lower(std::string s) { for (auto& c : s) c = (char)std::tolower((unsigned char)c); return s; }
