@@ -241,3 +241,26 @@ TEST(copy_large_file_limits_ownership_probes_without_skipping_final_check) {
     CHECK(probes>=3);
     CHECK(probes<30); // one-per-block regression would far exceed this bound
 }
+
+TEST(place_file_revocation_refuses_commit_and_preserves_staging) {
+    Fixture f;
+    f.t.write("upload-stage.bin", "valuable-staged-data");
+    OpContext ctx;
+    int checks=0;
+    ctx.revoked=[&]{++checks;return true;};
+    CHECK_ERR(f.ops.place_file(f.t.sub("upload-stage.bin"), f.usb, f.P(""),
+                               "uploaded.wav", Conflict::fail, ctx), Err::cancelled);
+    CHECK(checks>0);
+    CHECK_EQ(f.t.read("upload-stage.bin"), "valuable-staged-data");
+    CHECK(!f.t.exists("usb/uploaded.wav"));
+}
+TEST(place_file_cancelled_refuses_commit_and_preserves_staging) {
+    Fixture f;
+    f.t.write("upload-cancel.bin", "keep");
+    std::atomic<bool> cancel{true};
+    OpContext ctx;ctx.cancel=&cancel;
+    CHECK_ERR(f.ops.place_file(f.t.sub("upload-cancel.bin"), f.usb, f.P(""),
+                               "uploaded.wav", Conflict::fail, ctx), Err::cancelled);
+    CHECK_EQ(f.t.read("upload-cancel.bin"), "keep");
+    CHECK(!f.t.exists("usb/uploaded.wav"));
+}
