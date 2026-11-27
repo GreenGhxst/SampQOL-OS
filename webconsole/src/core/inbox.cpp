@@ -128,6 +128,13 @@ Status Inbox::commit(const std::string& id, const VolumeInfo& v, const RelPath& 
     std::lock_guard<std::mutex> lk(mu_);
     for (std::size_t i = 0; i < items_.size(); ++i) if (items_[i].id == id) {
         std::string fname; OpContext ctx;
+        ctx.revoked = [this, id=v.id]() {
+            try {
+                reg_.refresh();
+                auto current = reg_.get(id);
+                return !current || !current->mounted || current->ownership != Ownership::device;
+            } catch (...) { return true; }
+        };
         Status st = ops_.place_file(items_[i].staged_path, v, dir, items_[i].name, c, ctx, &fname);
         if (!st.ok()) return st;
         final_path = dir.child(fname).str();
