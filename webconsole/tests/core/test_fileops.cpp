@@ -264,3 +264,18 @@ TEST(place_file_cancelled_refuses_commit_and_preserves_staging) {
     CHECK_EQ(f.t.read("upload-cancel.bin"), "keep");
     CHECK(!f.t.exists("usb/uploaded.wav"));
 }
+
+TEST(no_replace_conflicts_preserve_existing_data_and_source) {
+    Fixture f; OpContext ctx;
+    f.t.write("sd/Samples/User/target.wav","existing");
+    f.t.write("sd/Samples/User/staged-source.wav","incoming");
+    CHECK_ERR(f.ops.move(f.sd,f.P("Samples/User/staged-source.wav"),f.sd,
+                         f.P("Samples/User"),"target.wav",Conflict::fail,ctx),Err::exists);
+    CHECK_EQ(f.t.read("sd/Samples/User/target.wav"),"existing");
+    CHECK_EQ(f.t.read("sd/Samples/User/staged-source.wav"),"incoming");
+    f.t.write("staged-no-replace.bin","uploaded");
+    CHECK_ERR(f.ops.place_file(f.t.sub("staged-no-replace.bin"),f.sd,
+                               f.P("Samples/User"),"target.wav",Conflict::fail,ctx),Err::exists);
+    CHECK_EQ(f.t.read("sd/Samples/User/target.wav"),"existing");
+    CHECK_EQ(f.t.read("staged-no-replace.bin"),"uploaded");
+}
