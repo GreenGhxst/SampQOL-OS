@@ -663,7 +663,14 @@ Status FileOps::place_file(const std::string& staged_abs, const VolumeInfo& dv, 
     std::string fname; bool overwrite = false;
     st = pick_destination(ddir.get(), "", name, c, fname, overwrite); if (!st.ok()) return st;
     if (overwrite) { struct stat d{}; if (::fstatat(ddir.get(), fname.c_str(), &d, AT_SYMLINK_NOFOLLOW) == 0 && S_ISDIR(d.st_mode)) return Status::fail(Err::exists, "a folder with this name exists"); }
+    // No destination mutation or staged-file deletion after cancellation or
+    // detected ownership revocation. Keep staging for explicit recovery.
+    if (ctx.cancelled()) return Status::fail(Err::cancelled, "place cancelled before commit");
     std::string jid = journal_.begin("place", staged_abs, dv.id + ":" + dst_dir.child(fname).str());
+    if (ctx.cancelled()) {
+        journal_.finish(jid, "cancelled", "place cancelled before commit");
+        return Status::fail(Err::cancelled, "place cancelled before commit");
+    }
     int rc = overwrite ? ::renameat(AT_FDCWD, staged_abs.c_str(), ddir.get(), fname.c_str())
                        : rename_noreplace(AT_FDCWD, staged_abs.c_str(), ddir.get(), fname.c_str());
     if (rc == 0) { journal_.finish(jid, "done"); if (final_name) *final_name = fname; return Status::good(); }
@@ -672,9 +679,15 @@ Status FileOps::place_file(const std::string& staged_abs, const VolumeInfo& dv, 
     std::vector<std::string> temps; std::uint64_t done = 0;
     std::string dabs = dv.root + (dst_dir.empty() ? "" : "/" + dst_dir.str());
     st = copy_regular(AT_FDCWD, staged_abs, ddir.get(), fname, ctx, done, std::uint64_t(sst.st_size), dabs, temps, overwrite);
-    for (auto& t : temps) ::unlink(t.c_str());
+    // Never clean up the destination after ownership revocation; after a
+    // successful copy retain source staging unless it is still authorized.
+    const bool revoked = ctx.revoked && ctx.revoked();
+    if (!revoked) for (auto& t : temps) ::unlink(t.c_str());
+    if (st.ok() && (revoked || (ctx.cancel && ctx.cancel->load())))
+        st = Status::fail(Err::partial, "File copied; staged source retained after cancellation or revocation");
     if (st.ok()) ::unlink(staged_abs.c_str());
-    journal_.finish(jid, st.ok() ? "done" : "failed", st.message);
+    journal_.finish(jid, st.ok() ? "done" : st.code == Err::partial ? "partial" :
+                             st.code == Err::cancelled ? "cancelled" : "failed", st.message);
     if (final_name) *final_name = fname;
     return st;
 }
